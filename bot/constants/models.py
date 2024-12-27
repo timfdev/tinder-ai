@@ -1,0 +1,74 @@
+import enum
+from pydantic import BaseModel
+from typing import Optional
+
+
+class Proxy(BaseModel):
+    host: Optional[str]
+    port: Optional[int]
+    user: Optional[str]
+    pwd: Optional[str]
+
+    def __bool__(self) -> bool:
+        return all([self.host, self.port, self.user, self.pwd])
+
+
+class Xpaths(enum.Enum):
+    CONTENT = '/html/body/div[1]' #'//div[starts-with(@id, "q-")]'
+    MODAL_MANAGER = '/html/body/div[2]' #'//div[starts-with(@id, "q")]'
+
+
+# Using enum class create enumerations
+class Socials(enum.Enum):
+    SNAPCHAT = "snapchat"
+    INSTAGRAM = "instagram"
+    PHONENUMBER = "phone"
+    FACEBOOK = "facebook"
+
+
+class Sexuality(enum.Enum):
+    MEN = "Men"
+    WOMEN = "Women"
+    EVERYONE = "Everyone"
+
+
+class Language(enum.Enum):
+    ENGLISH = "English"
+    AFRIKAANS = "Afrikaans"
+    ARABIC = "Arabic"
+    BULGARIAN = "Bulgarian"
+    BOSNIAN = "Bosnian"
+    CROATIAN = "Croatian"
+    CZECH = "Czech"
+    DANISH = "Danish"
+    DUTCH = "Dutch"
+    ESTONIAN = "Estonian"
+    FINNISH = "Finnish"
+    FRENCH = "French"
+    GEORGIAN = "Georgian"
+    GERMAN = "German"
+    GREEK = "Greek"
+    HINDI = "Hindi"
+    HUNGARIAN = "Hungarian"
+    INDONESIAN = "Indonesian"
+    ITALIAN = "Italian"
+    JAPANESE = "Japanese"
+    KOREAN = "Korean"
+    LATVIAN = "Latvian"
+    LITHUANIAN = "Lithuanian"
+    MACEDONIAN = "Macedonian"
+    MALAY = "Malay"
+    POLISH = "Polish"
+    PORTUGUESE = "Portuguese"
+    ROMANIAN = "Romanian"
+    RUSSIAN = "Russian"
+    SERBIAN = "Serbian"
+    SPANISH = "Spanish"
+    SLOVAK = "Slovak"
+    SLOVENIAN = "Slovenian"
+    SWEDISH = "Swedish"
+    TAMIL = "Tamil"
+    THAI = "Thai"
+    TURKISH = "Turkish"
+    UKRAINIAN = "Ukrainian"
+    VIETNAMESE = "Vietnamese"

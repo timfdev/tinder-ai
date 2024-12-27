@@ -1,3 +1,8 @@
+user_data/
+bot/utils/extension/
+
+proxy/3proxy.cfg
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
