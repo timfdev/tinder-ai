@@ -3,20 +3,17 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
 from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.common.action_chains import ActionChains
-import random
 from bot.constants.models import Sexuality
+from bot.settings import Settings
 import time
+import random
+
 
 class PreferencesHelper:
-
     delay = 8
-
-    HOME_URL = "https://www.tinder.com/app/profile"
 
     def __init__(self, browser):
         self.browser = browser
-
-        # open profile
         try:
             print('Open profile')
             xpath = '//*[@href="/app/profile"]'
@@ -24,223 +21,174 @@ class PreferencesHelper:
                 EC.presence_of_element_located((By.XPATH, xpath)))
             self.browser.find_element(By.XPATH, xpath).click()
             print('found profile page')
-        except:
-            pass
+        except TimeoutException:
+            print("Timeout while opening profile")
+        except Exception as e:
+            print(f"Error opening profile: {e}")
 
-    def set_preferences(self):
-        self.set_distance_range(15)
-        self.set_age_range(18, 55)
-        self.set_sexualitiy
-        self.set_global(True)
+    def set_preferences(self, settings: Settings):
+        self.set_distance_range(settings.distance_range)
+        self.set_age_range(settings.age_range_min, settings.age_range_max)
+        self.set_sexuality(settings.gender_preference)
+        time.sleep(random.randint(1, 3))
 
-    # Setting a custom location
     def set_custom_location(self, latitude, longitude, accuracy="100%"):
-
-        params = {
-            "latitude": latitude,
-            "longitude": longitude,
-            "accuracy": int(accuracy.split('%')[0])
-        }
-
-        self.browser.execute_cdp_cmd("Page.setGeolocationOverride", params)
+        """Sets a custom geolocation for the browser."""
+        try:
+            params = {
+                "latitude": latitude,
+                "longitude": longitude,
+                "accuracy": int(accuracy.split('%')[0])
+            }
+            self.browser.execute_cdp_cmd("Page.setGeolocationOverride", params)
+        except Exception as e:
+            print(f"Error setting custom location: {e}")
 
     def set_distance_range(self, km):
-        # correct out of bounds values
-        if km > 160:
-            final_percentage = 100
-        elif km < 2:
-            final_percentage = 0
-        else:
-            final_percentage = (km / 160) * 100
-
-        possible_xpaths = ['//*[@aria-label="Maximum distance in kilometres"]',
-                           '//*[@aria-label="Maximum distance in kilometers"]',
-                           '//*[@aria-label="Maximum distance in miles"]']
-
-        for xpath in possible_xpaths:
-            try:
-                WebDriverWait(self.browser, self.delay).until(
-                    EC.presence_of_element_located((By.XPATH, xpath)))
-                link = self.browser.find_element(By.XPATH, xpath)
-                break
-            except TimeoutException:
-                continue
-
-        print("\nSlider of distance will be adjusted...")
-        current_percentage = float(link.get_attribute('style').split(' ')[1].split('%')[0])
-        print("from {}% = {}km".format(current_percentage, current_percentage*1.6))
-        print("to {}% = {}km".format(final_percentage, final_percentage*1.6))
-        print("with a fault margin of 1%\n")
-
-        slider_track_xpath = "//*[@data-testid='slider-rail']"
-        slider_handle_xpath = '//*[@aria-label="Maximum distance in kilometers"]'
-
-        slider_track = WebDriverWait(self.browser, 10).until(
-            EC.presence_of_element_located((By.XPATH, slider_track_xpath)))
-        slider_handle = WebDriverWait(self.browser, 10).until(
-            EC.presence_of_element_located((By.XPATH, slider_handle_xpath)))
-
-        # Dynamically retrieve the slider's total width
-        slider_track_width_px = slider_track.size['width']
-
-        # Calculate the pixel distance needed to move based on the current and target percentages
-        pixel_distance_to_move = ((final_percentage - current_percentage) / 100) * slider_track_width_px
-
-        # Use ActionChains to drag the slider handle by the calculated pixel distance
-        action = ActionChains(self.browser).click_and_hold(slider_handle)
-        steps = 10  # You can adjust the number of steps based on your needs
-
-        # Calculate the distance for each small step
-        step_distance = pixel_distance_to_move / steps
-
-        # Introduce randomness in each step to simulate more natural movement
-        for _ in range(steps):
-            # Add a small random value to each step's distance to simulate slight variance in human movement
-            # Adjust the range of randomness (-0.5 to 0.5 here) as needed
-            random_step_distance = step_distance + random.uniform(-0.5, 0.5)
-
-            # Also introduce a slight vertical randomness to simulate imperfect straight-line movement
-            # Be cautious with vertical movement to avoid unwanted interactions
-            action.move_by_offset(random_step_distance, random.uniform(-1, 1))
-
-        # Release the slider handle after completing the movement
-        action.release()
-
-        # Perform the entire sequence of actions
-        action.perform()
-
-        print("Ended slider with {}% = {}km\n\n".format(current_percentage, current_percentage*1.6))
-        time.sleep(5)
-
-    def set_age_range(self, min, max):
-        # locate elements
-        xpath = '//*[@aria-label="Minimum age"]'
-        WebDriverWait(self.browser, self.delay).until(
-            EC.presence_of_element_located((By.XPATH, xpath)))
-        btn_minage = self.browser.find_element(By.XPATH, xpath)
-
-        xpath = '//*[@aria-label="Maximum age"]'
-        WebDriverWait(self.browser, self.delay).until(
-            EC.presence_of_element_located((By.XPATH, xpath)))
-        btn_maxage = self.browser.find_element(By.XPATH, xpath)
-
-        min_age_tinder = int(btn_maxage.get_attribute('aria-valuemin'))
-        max_age_tinder = int(btn_maxage.get_attribute('aria-valuemax'))
-
-        # correct out of bounds values
-        if min < min_age_tinder:
-            min = min_age_tinder
-
-        if max > max_age_tinder:
-            max = max_age_tinder
-
-        while max-min < 5:
-            max += 1
-            min -= 1
-
-            if min < min_age_tinder:
-                min = min_age_tinder
-            if max > max_age_tinder:
-                max = max_age_tinder
-
-        range_ages_tinder = max_age_tinder - min_age_tinder
-        percentage_per_year = 100 / range_ages_tinder
-
-        to_percentage_min = (min - min_age_tinder) * percentage_per_year
-        to_percentage_max = (max - min_age_tinder) * percentage_per_year
-
-        current_percentage_min = float(btn_minage.get_attribute('style').split(' ')[1].split('%')[0])
-        current_percentage_max = float(btn_maxage.get_attribute('style').split(' ')[1].split('%')[0])
-
-        print("\nSlider of ages will be adjusted...")
-        print("Minimum age will go ...")
-        print("from {}% = {} years old".format(current_percentage_min,
-                                               (current_percentage_min/percentage_per_year)+min_age_tinder))
-        print("to {}% = {} years old".format(to_percentage_min, min))
-        print("Maximum age will go ...")
-        print("from {}% = {} years old".format(current_percentage_max,
-                                               (current_percentage_max / percentage_per_year) + min_age_tinder))
-        print("to {}% = {} years old".format(to_percentage_max, max))
-        print("with a fault margin of 1%\n")
-        tolerance = 10
-        if abs(current_percentage_min - to_percentage_min) <= tolerance and abs(current_percentage_max - to_percentage_max) <= tolerance:
-            print("Sliders are already within the acceptable range. No adjustment needed.\n\n")
-            return
-        # start adjusting the distance slider
-        while abs(to_percentage_min - current_percentage_min) > 1 or abs(to_percentage_max - current_percentage_max) > 1:
-            ac = ActionChains(self.browser)
-
-            if current_percentage_min < to_percentage_min:
-                ac.click_and_hold(btn_minage).move_by_offset(5, 0).release(btn_minage).perform()
-            elif current_percentage_min > to_percentage_min:
-                ac.click_and_hold(btn_minage).move_by_offset(-5, 0).release(btn_minage).perform()
-
-            ac = ActionChains(self.browser)
-            if current_percentage_max < to_percentage_max:
-                ac.click_and_hold(btn_maxage).move_by_offset(5, 0).release(btn_maxage).perform()
-            elif current_percentage_max > to_percentage_max:
-                ac.click_and_hold(btn_maxage).move_by_offset(-5, 0).release(btn_maxage).perform()
-
-            # update current percentage
-            current_percentage_min = float(btn_minage.get_attribute('style').split(' ')[1].split('%')[0])
-            current_percentage_max = float(btn_maxage.get_attribute('style').split(' ')[1].split('%')[0])
-
-        print("Ended slider with ages from {} years old  to {} years old\n\n".format((current_percentage_min/percentage_per_year)+min_age_tinder,
-              (current_percentage_max / percentage_per_year) + min_age_tinder))
-        time.sleep(5)
-
-    def set_sexualitiy(self, type):
-        if not isinstance(type, Sexuality):
-            assert False
-
-        xpath = '//*[@href="/app/settings/gender"]/div/div/div/div'
-        WebDriverWait(self.browser, self.delay).until(
-            EC.presence_of_element_located((By.XPATH, xpath)))
-        element = self.browser.find_element(By.XPATH, xpath)
-        element.click()
-
-        xpath = '//*[@aria-pressed="false"]'.format(type.value)
-        WebDriverWait(self.browser, self.delay).until(
-            EC.presence_of_element_located((By.XPATH, xpath)))
-        elements = self.browser.find_elements(By.XPATH, xpath)
-
-        for element in elements:
-            if element.find_element(By.XPATH, './/div/label').text == type.value:
-                element.click()
-                break
-
-        print("clicked on " + type.value)
-        time.sleep(5)
-
-    def set_global(self, boolean, language=None):
-        # check if global is already activated
-        # Global is activated when the href to preferred languages is visible
-        is_activated = False
+        """Sets the distance range using slider manipulation."""
         try:
-            xpath = '//*[@href="/app/settings/global/languages"]/div'
-            WebDriverWait(self.browser, self.delay).until(
-                EC.presence_of_element_located((By.XPATH, xpath)))
-            self.browser.find_element(By.XPATH, xpath)
-            is_activated = True
+            # Correct out-of-bounds values
+            final_percentage = min(max((km / 161) * 100, 0), 100)
 
-        except:
-            pass
+            slider_handle_xpath = '//div[@role="slider" and @aria-label="Maximum distance in kilometers"]'
+            slider_track_xpath = '//*[@data-testid="slider-rail"]'
 
-        if boolean != is_activated:
-            xpath = '//*[@name="global"]'
-            element = self.browser.find_element(By.XPATH, xpath)
-            element.click()
+            # Locate the slider handle and track
+            slider_handle = WebDriverWait(self.browser, 5).until(
+                EC.presence_of_element_located((By.XPATH, slider_handle_xpath))
+            )
+            slider_track = WebDriverWait(self.browser, 5).until(
+                EC.presence_of_element_located((By.XPATH, slider_track_xpath))
+            )
 
-        if is_activated and language:
-            print("\nUnfortunately, Languages setting feature does not yet exist")
-            print("If needed anyways:\nfeel free to open an issue and ask for the feature")
-            print("or contribute by making a pull request.\n")
+            # Extract the current percentage from the 'style' attribute
+            current_percentage = float(slider_handle.get_attribute('style').split('left: ')[1].replace('%;', '').strip())
 
-            '''
-            languages_element.click()
-            xpath = "//*[contains(text(), {})]".format(language)
-            WebDriverWait(self.browser, self.delay).until(
-                    EC.presence_of_element_located((By.XPATH, xpath)))
-            self.browser.find_elements(By.XPATH, xpath).click()
-            '''
-            time.sleep(5)
+            # Dynamically retrieve the slider's total width
+            slider_track_width_px = slider_track.size['width']
+
+            # Calculate movement
+            pixel_distance_to_move = ((final_percentage - current_percentage) / 100) * slider_track_width_px
+
+            # Adjust the slider in small steps
+            action = ActionChains(self.browser).click_and_hold(slider_handle)
+            steps = max(1, int(abs(pixel_distance_to_move) / 5))
+            step_distance = pixel_distance_to_move / steps
+
+            for _ in range(steps):
+                action.move_by_offset(step_distance, 0)
+
+            action.release().perform()
+
+            # Verify the slider's final position
+            time.sleep(0.5)
+            updated_percentage = float(slider_handle.get_attribute('style').split('left: ')[1].replace('%;', '').strip())
+            print(f"Ended slider with distance from {updated_percentage * 1.61:.1f} km to {final_percentage * 1.61:.1f} km\n\n")
+
+        except Exception as e:
+            print(f"Error setting distance range: {e}")
+
+    def set_age_range(self, min_age, max_age):
+        """Sets the age range using slider manipulation."""
+        try:
+            min_slider = WebDriverWait(self.browser, self.delay).until(
+                EC.presence_of_element_located((By.XPATH, '//*[@data-testid="min-age-handle"]'))
+            )
+            max_slider = WebDriverWait(self.browser, self.delay).until(
+                EC.presence_of_element_located((By.XPATH, '//*[@data-testid="max-age-handle"]'))
+            )
+
+            def adjust_slider(slider, target_age, slider_type):
+                current_age = int(slider.get_attribute('aria-valuenow'))
+                print(f"\nAdjusting {slider_type} from {current_age} to {target_age} years")
+
+                if current_age == target_age:
+                    return current_age
+
+                # Start holding the slider
+                action = ActionChains(self.browser)
+                action.click_and_hold(slider)
+                action.perform()
+                time.sleep(0.1)
+
+                while True:
+                    current_age = int(slider.get_attribute('aria-valuenow'))
+                    if current_age == target_age:
+                        break
+
+                    # Calculate movement based on distance to target
+                    age_diff = target_age - current_age
+                    # Movement grows with distance but stays proportional
+                    movement = abs(age_diff) * 0.5  # This will make it move faster when far, slower when close
+                    pixels = movement if age_diff > 0 else -movement
+
+                    action = ActionChains(self.browser)
+                    action.move_by_offset(pixels, 0)
+                    action.perform()
+                    time.sleep(0.1)
+
+                    print(f"Current age: {current_age}, distance: {age_diff}, movement: {movement:.1f}px")
+
+                    # Prevent infinite loop if we can't hit exact target
+                    if abs(age_diff) <= 1:
+                        break
+
+                # Release the slider
+                action = ActionChains(self.browser)
+                action.release()
+                action.perform()
+
+                final_age = int(slider.get_attribute('aria-valuenow'))
+                print(f"Finished at age: {final_age}")
+                return final_age
+
+            # Adjust both sliders
+            min_age = max(18, min(min_age, 100))
+            max_age = min(100, max(max_age, min_age))
+
+            final_min = adjust_slider(min_slider, min_age, "Minimum")
+            time.sleep(0.3)
+            final_max = adjust_slider(max_slider, max_age, "Maximum")
+
+            print(f"Final age range: {final_min}-{final_max} years")
+
+        except Exception as e:
+            print(f"Error setting age range: {e}")
+
+    def set_sexuality(self, type: Sexuality):
+        """Sets the sexuality preference."""
+
+        # There is 2 buttons with identical labels
+        # Locate the correct "Looking for" button
+        settings_button_xpath = "//button[@aria-label='Looking for' and not(@data-id) and not(@data-route)]"
+        settings_button = WebDriverWait(self.browser, self.delay).until(
+            EC.element_to_be_clickable((By.XPATH, settings_button_xpath))
+        )
+
+        # Click the settings button
+        actions = ActionChains(self.browser)
+        actions.move_to_element(settings_button).click().perform()
+        time.sleep(0.3)
+
+        # Wait for the checkbox list to appear
+        WebDriverWait(self.browser, self.delay).until(
+            EC.presence_of_element_located((By.XPATH, "//ul[contains(@class, 'List')]"))
+        )
+
+        # Uncheck all selected checkboxes
+        checkboxes = self.browser.find_elements(
+            By.XPATH, "//input[@type='checkbox']"
+        )
+        for checkbox in checkboxes:
+            if checkbox.is_selected():
+                label = checkbox.find_element(
+                    By.XPATH, f"//label[@for='{checkbox.get_attribute('id')}']"
+                )
+                actions.move_to_element(label).click().perform()
+
+        # Locate and select the given option
+        option_xpath = f"//label[contains(., '{type.value}')]"
+        option = WebDriverWait(self.browser, self.delay).until(
+            EC.element_to_be_clickable((By.XPATH, option_xpath))
+        )
+        actions.move_to_element(option).click().perform()

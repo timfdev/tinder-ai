@@ -1,7 +1,12 @@
 
 
 from bot.session import Session
-import bot.constants.models as const
+from bot.constants.models import (
+    LoginMethods,
+    Socials,
+    Sexuality,
+    Language,
+)
 from bot.settings import Settings
 import time
 
@@ -13,8 +18,8 @@ if __name__ == "__main__":
     # creates instance of session
     with Session(settings=settings, use_local_proxy_server=True) as session:
 
-        session.login_using_facebook()
-        # session.set_preferences()
+        session.login(LoginMethods.FACEBOOK)
+        session.set_preferences()
         time.sleep(2000)
     exit()
     # session.dislike(amount=1)
@@ -28,7 +33,7 @@ if __name__ == "__main__":
     session.set_age_range(18, 55)
 
     # set interested in gender(s) -> options are: WOMEN, MEN, EVERYONE
-    session.set_sexuality(const.Sexuality.WOMEN)
+    session.set_sexuality(Sexuality.WOMEN)
 
     # Allow profiles from all over the world to appear
     # session.set_global(True)

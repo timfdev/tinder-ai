@@ -17,10 +17,10 @@ class Settings(BaseSettings):
 
     # Tinder Preferences
     age_range_min: int = Field(18, env="AGE_RANGE_MIN")  # Default: 18
-    age_range_max: int = Field(100, env="AGE_RANGE_MAX")  # Default: 100
+    age_range_max: int = Field(28, env="AGE_RANGE_MAX")  # Default: 100
     location_lat: Optional[float] = Field(None, env="LOCATION_LAT")
     location_lon: Optional[float] = Field(None, env="LOCATION_LON")
-    distance_range: int = Field(50, env="DISTANCE_RANGE")  # Default: 50 km
+    distance_range: int = Field(30, env="DISTANCE_RANGE")  # Default: 50 km
     gender_preference: Sexuality = Field(Sexuality.EVERYONE, env="GENDER_PREFERENCE")  # Default: everyone
 
     # Bot Behavior

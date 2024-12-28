@@ -59,6 +59,7 @@ class Session:
         )
         options.add_argument(f"--user-data-dir=./{user_data}")
         options.add_argument("homepage=http://example.com")
+        options.add_argument("--disable-notifications")
 
         if use_local_proxy_server:
             # Use local proxy server
@@ -106,7 +107,7 @@ class Session:
         self.browser.quit()
 
     def set_preferences(self):
-        PreferencesHelper(browser=self.browser, settings=self.settings).set_preferences()
+        PreferencesHelper(browser=self.browser).set_preferences(settings=self.settings)
 
     def login(self, method: LoginMethods = LoginMethods.FACEBOOK):
         if not self._is_logged_in():
@@ -135,15 +136,24 @@ class Session:
     def _is_logged_in(self):
         if "tinder.com" not in self.browser.current_url:
             self.browser.get("https://tinder.com/?lang=en")
-            WebDriverWait(self.browser, 10).until(
-                lambda driver: "tinder.com" in driver.current_url
+            try:
+                WebDriverWait(self.browser, 5).until(
+                    EC.url_contains("tinder.com")
+                )
+            except TimeoutException:
+                print("Timeout while waiting for Tinder to load.")
+                return False
+
+        try:
+            # Wait for the app page specifically, indicating login success
+            WebDriverWait(self.browser, 5).until(
+                EC.url_contains("tinder.com/app")
             )
-
-        if "tinder.com/app/" in self.browser.current_url:
+            print("User is logged in.")
             return True
-
-        print("User is not logged in yet.\n")
-        return False
+        except TimeoutException:
+            print("User is not logged in yet. Current URL:", self.browser.current_url)
+            return False
 
     def like(self, amount=5, ratio='100%', sleep=1, randomize_sleep=True):
 

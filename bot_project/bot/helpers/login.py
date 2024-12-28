@@ -29,7 +29,7 @@ class LoginHelper:
             time.sleep(3)
 
         except TimeoutException:
-            self._exit_by_time_out()
+            raise
 
         except ElementClickInterceptedException:
             pass
@@ -46,7 +46,7 @@ class LoginHelper:
             self.browser.find_element(By.XPATH, xpath).click()
 
         except TimeoutException:
-            self._exit_by_time_out()
+            raise
         except StaleElementReferenceException:
             # page was still loading when attempting to click facebook login
             time.sleep(4)
@@ -68,7 +68,7 @@ class LoginHelper:
             # sleeping 3 seconds for passwordfield to come through
             time.sleep(3)
         except TimeoutException:
-            self._exit_by_time_out()
+            raise
 
         try:
             xpath = "//input[@type='password']"
@@ -80,7 +80,7 @@ class LoginHelper:
             pwdfield.send_keys(Keys.ENTER)
 
         except TimeoutException:
-            self._exit_by_time_out()
+            raise
 
         self._change_focus_to_main_window()
         self._handle_popups()
@@ -100,7 +100,7 @@ class LoginHelper:
             print("Clicked Facebook login button.")
         except TimeoutException:
             print("Timeout while waiting for Facebook login button.")
-            self._exit_by_time_out()
+            raise
             return
 
         # Switch to popup
@@ -142,7 +142,7 @@ class LoginHelper:
                 print("Logged in via Facebook.")
             except TimeoutException:
                 print("Timeout occurred during manual Facebook login.")
-                self._exit_by_time_out()
+                raise
 
         # Switch back to main window
         self._change_focus_to_main_window()
@@ -170,34 +170,12 @@ class LoginHelper:
             except:
                 continue
 
-    # checks if user is logged in by checking the url
-    def _is_logged_in(self):
-        return 'app' in self.browser.current_url
-
     def _handle_popups(self):
-        for _ in range(20):
-            if not self._is_logged_in():
-                time.sleep(1.2)
-            else:
-                break
-
-        if not self._is_logged_in():
-            print('Still not logged in ... ?')
-            input('Proceed manually and press ENTER to continue\n')
-
+        print("Handling popups...")
         time.sleep(2)
         self._accept_cookies()
         self._accept_location_notification()
         self._deny_overlayed_notifications()
-
-        #self.browser.execute_cdp_cmd(
-        #    "Browser.grantPermissions",
-        #    {
-        #        "origin": "https://www.tinder.com",
-        #        "permissions": ["geolocation"]
-        #    },
-        #)
-
         time.sleep(5)
 
     def _accept_location_notification(self):
@@ -300,8 +278,3 @@ class LoginHelper:
                         break
 
         self.browser.switch_to.window(main_window)
-
-    def _exit_by_time_out(self):
-        print("Loading an element took too much time!. Please check your internet connection.")
-        print("Alternatively, you can add a sleep or higher the delay class variable.")
-        exit(1)
