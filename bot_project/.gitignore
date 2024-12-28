@@ -1,8 +1,6 @@
 user_data/
 bot/utils/extension/
 
-proxy/3proxy.cfg
-
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
@@ -127,7 +125,7 @@ celerybeat.pid
 *.sage.py
 
 # Environments
-.env
+*.env
 .venv
 env/
 venv/

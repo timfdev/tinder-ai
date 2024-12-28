@@ -249,6 +249,7 @@ class LoginHelper:
                     if 'accept' in text_span.lower() or 'i accept' in button_html.lower():
                         button.click()
                         print("COOKIES ACCEPTED.")
+                        time.sleep(1.5)
                         break
                 except NoSuchElementException:
                     pass

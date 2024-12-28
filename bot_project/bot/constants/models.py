@@ -3,6 +3,11 @@ from pydantic import BaseModel
 from typing import Optional
 
 
+class LoginMethods(enum.Enum):
+    FACEBOOK = "facebook"
+    GOOGLE = "google"
+
+
 class Proxy(BaseModel):
     host: Optional[str]
     port: Optional[int]
