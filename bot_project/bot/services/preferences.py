@@ -1,7 +1,10 @@
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
-from selenium.common.exceptions import TimeoutException
+from selenium.common.exceptions import (
+    TimeoutException,
+    StaleElementReferenceException
+)
 from selenium.webdriver.common.action_chains import ActionChains
 from bot.constants.models import Sexuality
 from bot.settings import Settings
@@ -30,6 +33,8 @@ class PreferencesHelper:
         self.set_distance_range(settings.distance_range)
         self.set_age_range(settings.age_range_min, settings.age_range_max)
         self.set_sexuality(settings.gender_preference)
+        time.sleep(random.randint(1, 3))
+        self.navigate_to_main_screen()
         time.sleep(random.randint(1, 3))
 
     def set_custom_location(self, latitude, longitude, accuracy="100%"):
@@ -156,39 +161,76 @@ class PreferencesHelper:
             print(f"Error setting age range: {e}")
 
     def set_sexuality(self, type: Sexuality):
-        """Sets the sexuality preference."""
+        """
+        Sets the sexuality preference with enhanced error handling.
+        """
+        try:
+            # Locate the "Looking for" button
+            settings_button_xpath = "//button[@aria-label='Looking for' and not(@data-id) and not(@data-route)]"
+            settings_button = WebDriverWait(self.browser, self.delay).until(
+                EC.element_to_be_clickable((By.XPATH, settings_button_xpath))
+            )
 
-        # There is 2 buttons with identical labels
-        # Locate the correct "Looking for" button
-        settings_button_xpath = "//button[@aria-label='Looking for' and not(@data-id) and not(@data-route)]"
-        settings_button = WebDriverWait(self.browser, self.delay).until(
-            EC.element_to_be_clickable((By.XPATH, settings_button_xpath))
-        )
+            # Click the settings button
+            actions = ActionChains(self.browser)
+            actions.move_to_element(settings_button).click().perform()
+            time.sleep(0.3)
 
-        # Click the settings button
+            # Wait for the checkbox list to appear
+            WebDriverWait(self.browser, self.delay).until(
+                EC.presence_of_element_located((By.XPATH, "//ul[contains(@class, 'List')]"))
+            )
+
+            # Uncheck all selected checkboxes
+            checkboxes = self.browser.find_elements(By.XPATH, "//input[@type='checkbox']")
+            for checkbox in checkboxes:
+                try:
+                    if checkbox.is_selected():
+                        label = checkbox.find_element(
+                            By.XPATH, f"//label[@for='{checkbox.get_attribute('id')}']"
+                        )
+                        actions.move_to_element(label).click().perform()
+                except StaleElementReferenceException:
+                    print("Checkbox element became stale; attempting to refresh and continue.")
+                    # Refresh the list of checkboxes
+                    checkboxes = self.browser.find_elements(By.XPATH, "//input[@type='checkbox']")
+
+            # Locate and select the given option
+            option_xpath = f"//label[contains(., '{type.value}')]"
+            option = WebDriverWait(self.browser, self.delay).until(
+                EC.element_to_be_clickable((By.XPATH, option_xpath))
+            )
+            actions.move_to_element(option).click().perform()
+
+        except StaleElementReferenceException:
+            print("Element became stale during interaction. Retrying...")
+            self.set_sexuality(type)  # Retry the operation
+        except TimeoutException:
+            print("Timed out waiting for elements. Please check the page state.")
+        except Exception as e:
+            print(f"An unexpected error occurred: {e}")
+        finally:
+            # Close the settings menu
+            self.navigate_to_main_settings()
+
+    def navigate_to_main_settings(self):
         actions = ActionChains(self.browser)
-        actions.move_to_element(settings_button).click().perform()
-        time.sleep(0.3)
-
-        # Wait for the checkbox list to appear
-        WebDriverWait(self.browser, self.delay).until(
-            EC.presence_of_element_located((By.XPATH, "//ul[contains(@class, 'List')]"))
+        # Navigate back to the main settings page
+        profile_button_xpath = "//a[@title='My Profile' and contains(@href, '/app/profile')]"
+        profile_button = WebDriverWait(self.browser, self.delay).until(
+            EC.element_to_be_clickable((By.XPATH, profile_button_xpath))
         )
+        actions.move_to_element(profile_button).click().perform()
+        print("Navigated back to the main settings page.")
 
-        # Uncheck all selected checkboxes
-        checkboxes = self.browser.find_elements(
-            By.XPATH, "//input[@type='checkbox']"
+    def navigate_to_main_screen(self):
+        """
+        Navigate back to the main screen for liking profiles.
+        """
+        actions = ActionChains(self.browser)
+        back_button_xpath = "//a[@title='Back' and contains(@href, '/app/recs')]"
+        back_button = WebDriverWait(self.browser, self.delay).until(
+            EC.element_to_be_clickable((By.XPATH, back_button_xpath))
         )
-        for checkbox in checkboxes:
-            if checkbox.is_selected():
-                label = checkbox.find_element(
-                    By.XPATH, f"//label[@for='{checkbox.get_attribute('id')}']"
-                )
-                actions.move_to_element(label).click().perform()
-
-        # Locate and select the given option
-        option_xpath = f"//label[contains(., '{type.value}')]"
-        option = WebDriverWait(self.browser, self.delay).until(
-            EC.element_to_be_clickable((By.XPATH, option_xpath))
-        )
-        actions.move_to_element(option).click().perform()
+        actions.move_to_element(back_button).click().perform()
+        print("Navigated back to the main screen for liking profiles.")

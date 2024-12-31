@@ -1,4 +1,3 @@
-# from webdriver_manager.chrome import ChromeDriverManager
 import undetected_chromedriver as uc
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
@@ -10,15 +9,16 @@ from selenium.common.exceptions import (
 )
 
 import time
-from bot.helpers.preferences import PreferencesHelper
-from bot.helpers.login import LoginHelper
+from bot.services.preferences import PreferencesHelper
+from bot.services.login import LoginHelper
 from bot.constants.models import Xpaths, LoginMethods
 from bot.utils.addproxy import get_proxy_extension
 from bot.settings import Settings
 from pathlib import Path
 import random
-from bot.helpers.matcher import Matcher
+from bot.services.matcher import Matcher
 import json
+from bot.services.location import LocationSetter
 
 
 class Session:
@@ -85,6 +85,13 @@ class Session:
 
         self.browser.set_window_size(1250, 750)
         self.settings = settings
+
+        location_setter = LocationSetter(
+            browser=self.browser,
+            settings=self.settings,
+            local_proxy_url=local_proxy_url
+        )
+        location_setter.configure_location()
 
         self.started = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
         print(f"Started session: {self.started}\n\n")
@@ -155,87 +162,55 @@ class Session:
             print("User is not logged in yet. Current URL:", self.browser.current_url)
             return False
 
-    def like(self, amount=5, ratio='100%', sleep=1, randomize_sleep=True):
+    def start_swiping(self, amount=5, ratio='90%', sleep=1):
+        """
+        Start liking or disliking profiles based on the provided amount and ratio.
 
+        :param amount: Number of profiles to process.
+        :param ratio: Percentage chance to like a profile (e.g., '80%' for 80% like).
+        :param sleep: Base sleep time between actions in seconds.
+        """
         initial_sleep = sleep
-        ratio = float(ratio.split('%')[0]) / 100
+        ratio = float(ratio.strip('%')) / 100  # Convert ratio to float (e.g., '100%' -> 1.0)
 
-        if self._is_logged_in():
-            matcher = Matcher(browser=self.browser)
-            amount_liked = 0
-            # handle one time up front, from then on check after every action instead of before
-            self._handle_potential_popups()
+        if not self._is_logged_in():
+            print("Not logged in. Please log in before starting the liking process.")
+            return
 
-            print("\nLiking profiles started.")
-            while amount_liked < amount:
-                # randomize sleep
-                if randomize_sleep:
-                    sleep = random.uniform(0.5, 2.3) * initial_sleep
-                if random.random() <= ratio:
+        matcher = Matcher(browser=self.browser)
+        amount_liked = 0
+
+        print("\nStarting to like profiles.")
+        self._handle_potential_popups()  # Initial popup handling
+
+        while amount_liked < amount:
+            try:
+                # Dynamically adjust sleep time
+                sleep_time = random.uniform(0.5, 2.3) * initial_sleep
+                like = random.random() <= ratio
+
+                if like:
                     if matcher.like():
                         amount_liked += 1
-                        # update for stats after session ended
                         self.session_data['like'] += 1
-                        print(f"{amount_liked}/{amount} liked, sleep: {sleep}")
+                        print(f"Profile liked: {amount_liked}/{amount}. Sleeping for {sleep_time:.2f} seconds.")
                 else:
                     matcher.dislike()
-                    # update for stats after session ended
                     self.session_data['dislike'] += 1
+                    print(f"Profile disliked. Sleeping for {sleep_time:.2f} seconds.")
 
-                #self._handle_potential_popups()
-                time.sleep(sleep)
+                time.sleep(sleep_time)  # Wait before the next action
+                self._handle_potential_popups()  # Check for popups after each action
 
-    # def dislike(self, amount=1):
-    #     if self._is_logged_in():
-    #         helper = GeomatchHelper(browser=self.browser)
-    #         for _ in range(amount):
-    #             self._handle_potential_popups()
-    #             helper.dislike()
+            except NoSuchElementException as e:
+                print(f"Element not found during processing: {e}. Retrying...")
+            except TimeoutException as e:
+                print(f"Timeout encountered: {e}. Retrying...")
+            except Exception as e:
+                print(f"Unexpected error occurred: {e}. Skipping this iteration.")
 
-    #             # update for stats after session ended
-    #             self.session_data['dislike'] += 1
-    #             #time.sleep(1)
-    #         self._print_liked_stats()
+        print(f"\nFinished liking profiles. Total liked: {amount_liked}, Total disliked: {self.session_data['dislike']}.")
 
-    # def superlike(self, amount=1):
-    #     if self._is_logged_in():
-    #         helper = GeomatchHelper(browser=self.browser)
-    #         for _ in range(amount):
-    #             self._handle_potential_popups()
-    #             helper.superlike()
-    #             # update for stats after session ended
-    #             self.session_data['superlike'] += 1
-    #             time.sleep(1)
-    #         self._print_liked_stats()
-
-    # def get_geomatch(self, quickload=True):
-    #     if self._is_logged_in():
-    #         helper = GeomatchHelper(browser=self.browser)
-    #         self._handle_potential_popups()
-
-    #         name = None
-    #         attempts = 0
-    #         max_attempts = 3
-    #         while not name and attempts < max_attempts:
-    #             attempts += 1
-    #             name = helper.get_name()
-    #             self._handle_potential_popups() # Popup handling on first geomatch
-    #             time.sleep(1)
-
-    #         age = helper.get_age()
-
-    #         bio, passions, lifestyle, basics, anthem, looking_for = helper.get_bio_and_passions()
-    #         image_urls = helper.get_image_urls(quickload)
-    #         instagram = helper.get_insta(bio)
-    #         rowdata = helper.get_row_data()
-    #         work = rowdata.get('work')
-    #         study = rowdata.get('study')
-    #         home = rowdata.get('home')
-    #         distance = rowdata.get('distance')
-    #         gender = rowdata.get('gender')
-
-    #         return Geomatch(name=name, age=age, work=work, gender=gender, study=study, home=home, distance=distance,
-    #                         bio=bio, passions=passions, lifestyle=lifestyle, basics=basics, anthem=anthem, looking_for=looking_for, image_urls=image_urls, instagram=instagram)
 
     # def get_chat_ids(self, new=True, messaged=True):
     #     if self._is_logged_in():
