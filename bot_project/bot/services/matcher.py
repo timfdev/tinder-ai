@@ -68,21 +68,3 @@ class Matcher:
         except Exception as e:
             print(f"Error occurred while disliking: {e}")
         return False
-
-    def _handle_popups(self):
-        """
-        Handle any popups that might appear during interaction.
-        """
-        try:
-            # Example: if there's a close button
-            popup_close_button_xpath = "//button[contains(@aria-label, 'Close')]"
-            popup_close_button = WebDriverWait(self.browser, 5).until(
-                EC.element_to_be_clickable((By.XPATH, popup_close_button_xpath))
-            )
-            popup_close_button.click()
-            print("Popup closed successfully.")
-        except NoSuchElementException:
-            # No popup found; do nothing
-            pass
-        except Exception as e:
-            print(f"Error occurred while handling popup: {e}")

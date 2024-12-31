@@ -5,7 +5,8 @@ from selenium.webdriver.common.by import By
 from selenium.common.exceptions import (
     NoSuchElementException,
     TimeoutException,
-    ElementNotVisibleException
+    ElementNotVisibleException,
+    StaleElementReferenceException
 )
 
 import time
@@ -40,7 +41,8 @@ class Session:
             "duration": 0,
             "like": 0,
             "dislike": 0,
-            "superlike": 0
+            "superlike": 0,
+            "matches": 0
         }
 
         self.start_session = time.time()
@@ -105,7 +107,7 @@ class Session:
         self.session_data["duration"] = seconds
 
         # Print stats
-        json.dumps(self.session_data, indent=4)
+        print(json.dumps(self.session_data, indent=4))
 
         print(f"Started session: {self.started}")
         print(f"Ended session: {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime())}")
@@ -162,7 +164,7 @@ class Session:
             print("User is not logged in yet. Current URL:", self.browser.current_url)
             return False
 
-    def start_swiping(self, amount=5, ratio='90%', sleep=1):
+    def start_swiping(self, amount=80, ratio='90%', sleep=1):
         """
         Start liking or disliking profiles based on the provided amount and ratio.
 
@@ -193,11 +195,9 @@ class Session:
                     if matcher.like():
                         amount_liked += 1
                         self.session_data['like'] += 1
-                        print(f"Profile liked: {amount_liked}/{amount}. Sleeping for {sleep_time:.2f} seconds.")
                 else:
                     matcher.dislike()
                     self.session_data['dislike'] += 1
-                    print(f"Profile disliked. Sleeping for {sleep_time:.2f} seconds.")
 
                 time.sleep(sleep_time)  # Wait before the next action
                 self._handle_potential_popups()  # Check for popups after each action
@@ -209,57 +209,6 @@ class Session:
             except Exception as e:
                 print(f"Unexpected error occurred: {e}. Skipping this iteration.")
 
-        print(f"\nFinished liking profiles. Total liked: {amount_liked}, Total disliked: {self.session_data['dislike']}.")
-
-
-    # def get_chat_ids(self, new=True, messaged=True):
-    #     if self._is_logged_in():
-    #         helper = MatchHelper(browser=self.browser)
-    #         self._handle_potential_popups()
-    #         return helper.get_chat_ids(new, messaged)
-
-    # def get_new_matches(self, amount=100000, quickload=True):
-    #     if self._is_logged_in():
-    #         helper = MatchHelper(browser=self.browser)
-    #         self._handle_potential_popups()
-    #         return helper.get_new_matches(amount, quickload)
-
-    # def get_messaged_matches(self, amount=100000, quickload=True):
-    #     if self._is_logged_in():
-    #         helper = MatchHelper(browser=self.browser)
-    #         self._handle_potential_popups()
-    #         return helper.get_messaged_matches(amount, quickload)
-
-    # def send_message(self, chatid, message):
-    #     if self._is_logged_in():
-    #         helper = MatchHelper(browser=self.browser)
-    #         self._handle_potential_popups()
-    #         helper.send_message(chatid, message)
-
-    # def send_gif(self, chatid, gifname):
-    #     if self._is_logged_in():
-    #         helper = MatchHelper(browser=self.browser)
-    #         self._handle_potential_popups()
-    #         helper.send_gif(chatid, gifname)
-
-    # def send_song(self, chatid, songname):
-    #     if self._is_logged_in():
-    #         helper = MatchHelper(browser=self.browser)
-    #         self._handle_potential_popups()
-    #         helper.send_song(chatid, songname)
-
-    # def send_socials(self, chatid, media):
-    #     if self._is_logged_in():
-    #         helper = MatchHelper(browser=self.browser)
-    #         self._handle_potential_popups()
-    #         helper.send_socials(chatid, media)
-
-    # def unmatch(self, chatid):
-    #     if self._is_logged_in():
-    #         helper = MatchHelper(browser=self.browser)
-    #         self._handle_potential_popups()
-    #         helper.unmatch(chatid)
-
     # Utilities
     def _handle_potential_popups(self):
         delay = 0.25
@@ -267,27 +216,7 @@ class Session:
         # last possible id based div
         base_element = self.browser.find_element(By.XPATH, Xpaths.MODAL_MANAGER.value)
 
-        # accept cookies
-        try:
-            xpath = './/main/div[2]/div/div/div[1]/div[1]/button'
-            accept = base_element.find_element(By.XPATH, xpath)
-            accept.click()
-            self._handle_potential_popups()
-            return "POPUP: Accepted cookies"
-        except NoSuchElementException:
-            pass
-
-        # turn off notifcation popup
-        try:
-            xpath = './/main/div[1]/div/div/div[3]/button[2]'
-            not_now = base_element.find_element(By.XPATH, xpath)
-            not_now.click()
-            self._handle_potential_popups()
-            return "POPUP: Turned off notifications"
-        except NoSuchElementException:
-            pass
-
-        # try to deny see who liked you
+        # 'see who liked you' popup
         try:
             xpath = './/main/div/div/div[3]/button[2]'
             WebDriverWait(base_element, delay).until(
@@ -302,99 +231,49 @@ class Session:
         except TimeoutException:
             pass
 
-        # Try to dismiss a potential 'upgrade like' popup
+        # 'upgrade like' popup
         try:
             # locate "no thanks"-button
             xpath = './/main/div/button[2]'
             base_element.find_element(By.XPATH, xpath).click()
-            return "POPUP: Denied upgrade to superlike"
+            print("POPUP: Denied upgrade to superlike")
+            return
         except NoSuchElementException:
             pass
 
-        # try to deny 'add tinder to homescreen'
+        # 'add tinder to homescreen' popup
         try:
             xpath = './/main/div/div[2]/button[2]'
 
             add_to_home_popup = base_element.find_element(By.XPATH, xpath)
             add_to_home_popup.click()
-            return "POPUP: Denied Tinder to homescreen"
-
+            print("POPUP: Denied Tinder to homescreen")
+            return
         except NoSuchElementException:
             pass
 
-        # deny buying more superlikes
-        try:
-            xpath = './/main/div/div[3]/button[2]'
-            deny = base_element.find_element(By.XPATH, xpath)
-            deny.click()
-            return "POPUP: Denied buying more superlikes"
-        except NoSuchElementException:
-            pass
-
-        # try to dismiss match
-        matched = False
+        # match popup
         try:
             xpath = '//button[@title="Back to Tinder"]'
 
             match_popup = base_element.find_element(By.XPATH, xpath)
             match_popup.click()
-            matched = True
-
+            self.session_data["matches"] += 1
         except NoSuchElementException:
             pass
-        except:
-            matched = True
+        except StaleElementReferenceException:
             self.browser.refresh()
 
-        if matched and self.may_send_email:
-            try:
-                EmailHelper.send_mail_match_found(self.email)
-            except:
-                print("Some error occurred when trying to send mail.")
-                print("Consider opening an Issue on Github.")
-                pass
-            return "POPUP: Dismissed NEW MATCH"
-
-        # try to say 'no thanks' to buy more (super)likes
+        # superlikes popup
         try:
             xpath = './/main/div/div[3]/button[2]'
             deny_btn = base_element.find_element(By.XPATH, xpath)
             deny_btn.click()
-            return "POPUP: Denied buying more superlikes"
+            print("POPUP: Denied buying more superlikes")
 
         except ElementNotVisibleException:
-            # element is not clickable, probably cuz it's out of view but still there
             self.browser.refresh()
         except NoSuchElementException:
             pass
-        except:
-            # TBD add stale element exception for now just refresh page
+        except StaleElementReferenceException:
             self.browser.refresh()
-            pass
-
-        # Deny confirmation of email
-        try:
-            xpath = './/main/div/div[1]/div[2]/button[2]'
-            remindmelater = base_element.find_element(By.XPATH, xpath)
-            remindmelater.click()
-
-            time.sleep(3)
-            # handle other potential popups
-            self._handle_potential_popups()
-            return "POPUP: Deny confirmation of email"
-        except:
-            pass
-
-        # Deny add location popup
-        try:
-            xpath = ".//*[contains(text(), 'No Thanks')]"
-            nothanks = base_element.find_element(By.XPATH, xpath)
-            nothanks.click()
-            time.sleep(3)
-            # handle other potential popups
-            self._handle_potential_popups()
-            return "POPUP: Deny confirmation of email"
-        except:
-            pass
-
-        return None
