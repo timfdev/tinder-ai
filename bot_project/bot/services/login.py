@@ -1,12 +1,20 @@
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
-from selenium.common.exceptions import TimeoutException, ElementClickInterceptedException, StaleElementReferenceException, NoSuchElementException
+from selenium.common.exceptions import (
+    TimeoutException,
+    ElementClickInterceptedException,
+    StaleElementReferenceException,
+    NoSuchElementException
+)
 from selenium.webdriver.common.keys import Keys
 import time
+from logging import getLogger
+
+logger = getLogger(__name__)
 
 
-class LoginHelper:
+class LoginService:
     delay = 5
 
     def __init__(self, browser):
@@ -22,9 +30,9 @@ class LoginHelper:
             # Ensure the button is displayed before clicking
             if button.is_displayed():
                 button.click()
-                print("Button clicked successfully!")
+                logger.info("Button clicked successfully!")
             else:
-                print("Button is not displayed.")
+                logger.info("Button is not displayed.")
             button.click()
             time.sleep(3)
 
@@ -53,8 +61,8 @@ class LoginHelper:
             self.browser.find_element(By.XPATH, xpath).click()
 
         if not self._change_focus_to_pop_up():
-            print("FAILED TO CHANGE FOCUS TO POPUP")
-            print("Let's try again...")
+            logger.info("FAILED TO CHANGE FOCUS TO POPUP")
+            logger.info("Let's try again...")
             return self.login_by_google(email, password)
 
         try:
@@ -87,7 +95,7 @@ class LoginHelper:
 
     def login_by_facebook(self, email, password):
 
-        print("Logging in with Facebook...")
+        logger.info("Logging in with Facebook...")
         self._click_login_button()
 
         # Wait for Facebook login button
@@ -97,15 +105,15 @@ class LoginHelper:
                 EC.presence_of_element_located((By.XPATH, xpath))
             )
             self.browser.find_element(By.XPATH, xpath).click()
-            print("Clicked Facebook login button.")
+            logger.info("Clicked Facebook login button.")
         except TimeoutException:
-            print("Timeout while waiting for Facebook login button.")
+            logger.info("Timeout while waiting for Facebook login button.")
             raise
             return
 
         # Switch to popup
         if not self._change_focus_to_pop_up():
-            print("Failed to switch focus to Facebook popup.")
+            logger.info("Failed to switch focus to Facebook popup.")
             return self.login_by_facebook(email, password)
 
         # Handle "Continue as" or fallback to email/password
@@ -116,9 +124,9 @@ class LoginHelper:
                 EC.presence_of_element_located((By.XPATH, xpath_continue))
             )
             self.browser.find_element(By.XPATH, xpath_continue).click()
-            print("Clicked 'Continue as' button.")
+            logger.info("Clicked 'Continue as' button.")
         except TimeoutException:
-            print("'Continue as' button not found. Falling back to manual login...")
+            logger.info("'Continue as' button not found. Falling back to manual login...")
 
             # Fallback to entering email and password
             try:
@@ -139,9 +147,9 @@ class LoginHelper:
 
                 loginbutton = self.browser.find_element(By.XPATH, xpath_button)
                 loginbutton.click()
-                print("Logged in via Facebook.")
+                logger.info("Logged in via Facebook.")
             except TimeoutException:
-                print("Timeout occurred during manual Facebook login.")
+                logger.info("Timeout occurred during manual Facebook login.")
                 raise
 
         # Switch back to main window
@@ -162,16 +170,16 @@ class LoginHelper:
             try:
                 span = el.find_element(By.XPATH, './/span')
                 if span.text.lower() == country.lower():
-                    print("clicked")
+                    logger.info("clicked")
                     el.click()
                     break
                 else:
-                    print(span.text)
+                    logger.info(span.text)
             except:
                 continue
 
     def _handle_popups(self):
-        print("Handling popups...")
+        logger.info("Handling popups...")
         time.sleep(2)
         self._accept_cookies()
         self._accept_location_notification()
@@ -186,9 +194,9 @@ class LoginHelper:
 
             locationBtn = self.browser.find_element(By.XPATH, xpath)
             locationBtn.click()
-            print("ACCEPTED LOCATION.")
+            logger.info("ACCEPTED LOCATION.")
         except TimeoutException:
-            print(
+            logger.info(
                 "ACCEPTING LOCATION: Loading took too much time! Element probably not presented, so we continue.")
         except:
             pass
@@ -200,15 +208,15 @@ class LoginHelper:
                 EC.presence_of_element_located((By.XPATH, xpath)))
 
             self.browser.find_element(By.XPATH, xpath).click()
-            print("DENIED NOTIFICATIONS.")
+            logger.info("DENIED NOTIFICATIONS.")
         except TimeoutException:
-            print(
+            logger.info(
                 "DENYING NOTIFICATIONS: Loading took too much time! Element probably not presented, so we continue.")
         except:
             pass
 
     def _accept_cookies(self):
-        print("Accepting cookies...")
+        logger.info("Accepting cookies...")
         try:
             xpath = '//*[@type="button"]'
             WebDriverWait(self.browser, self.delay).until(
@@ -226,18 +234,18 @@ class LoginHelper:
                     button_html = button.get_attribute('outerHTML')
                     if 'accept' in text_span.lower() or 'i accept' in button_html.lower():
                         button.click()
-                        print("COOKIES ACCEPTED.")
+                        logger.info("COOKIES ACCEPTED.")
                         time.sleep(1.5)
                         break
                 except NoSuchElementException:
                     pass
 
         except TimeoutException:
-            print(
+            logger.info(
                 "ACCEPTING COOKIES: Loading took too much time! Element probably not present, so we continue."
             )
         except Exception as e:
-            print("Error while accepting cookies:", e)
+            logger.info("Error while accepting cookies:", e)
 
     def _change_focus_to_pop_up(self):
         max_tries = 50
@@ -254,7 +262,7 @@ class LoginHelper:
             current_tries += 1
             time.sleep(0.30)
             if current_tries >= max_tries:
-                print("tries exceeded")
+                logger.info("tries exceeded")
                 return False
 
             for handle in self.browser.window_handles:

@@ -3,9 +3,12 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.action_chains import ActionChains
+from logging import getLogger
+
+logger = getLogger(__name__)
 
 
-class Matcher:
+class MatchService:
     def __init__(self, browser):
         """
         Initialize the Matcher class.
@@ -19,7 +22,6 @@ class Matcher:
         :return: True if successful, False otherwise.
         """
         try:
-            # Find the button with text "Like" inside <span class="Hidden">Like</span>
             like_button_xpath = (
                 "//button[contains(@class, 'gamepad-button')]"
                 "[.//span[contains(@class, 'Hidden') and text()='Like']]"
@@ -28,18 +30,15 @@ class Matcher:
                 EC.element_to_be_clickable((By.XPATH, like_button_xpath))
             )
 
-            # Use ActionChains to hover and then click
             actions = ActionChains(self.browser)
             actions.move_to_element(like_button).click().perform()
-
-            print("Profile liked successfully.")
             return True
         except NoSuchElementException:
-            print("Like button not found.")
+            logger.info("Like button not found.")
         except Exception as e:
             import traceback
-            print(f"Error occurred while liking: {e}")
-            print(traceback.format_exc())
+            logger.info(f"Error occurred while liking: {e}")
+            logger.info(traceback.format_exc())
         return False
 
     def dislike(self):
@@ -60,11 +59,9 @@ class Matcher:
 
             actions = ActionChains(self.browser)
             actions.move_to_element(dislike_button).click().perform()
-
-            print("Profile disliked successfully.")
             return True
         except NoSuchElementException:
-            print("Dislike button not found.")
+            logger.info("Dislike button not found.")
         except Exception as e:
-            print(f"Error occurred while disliking: {e}")
+            logger.info(f"Error occurred while disliking: {e}")
         return False

@@ -10,24 +10,28 @@ from bot.constants.models import Sexuality
 from bot.settings import Settings
 import time
 import random
+from logging import getLogger
 
 
-class PreferencesHelper:
+logger = getLogger(__name__)
+
+
+class PreferencesService:
     delay = 8
 
     def __init__(self, browser):
         self.browser = browser
         try:
-            print('Open profile')
+            logger.info('Open profile')
             xpath = '//*[@href="/app/profile"]'
             WebDriverWait(self.browser, self.delay).until(
                 EC.presence_of_element_located((By.XPATH, xpath)))
             self.browser.find_element(By.XPATH, xpath).click()
-            print('found profile page')
+            logger.info('found profile page')
         except TimeoutException:
-            print("Timeout while opening profile")
+            logger.info("Timeout while opening profile")
         except Exception as e:
-            print(f"Error opening profile: {e}")
+            logger.info(f"Error opening profile: {e}")
 
     def set_preferences(self, settings: Settings):
         self.set_distance_range(settings.distance_range)
@@ -47,7 +51,7 @@ class PreferencesHelper:
             }
             self.browser.execute_cdp_cmd("Page.setGeolocationOverride", params)
         except Exception as e:
-            print(f"Error setting custom location: {e}")
+            logger.info(f"Error setting custom location: {e}")
 
     def set_distance_range(self, km):
         """Sets the distance range using slider manipulation."""
@@ -88,10 +92,10 @@ class PreferencesHelper:
             # Verify the slider's final position
             time.sleep(0.5)
             updated_percentage = float(slider_handle.get_attribute('style').split('left: ')[1].replace('%;', '').strip())
-            print(f"Ended slider with distance from {updated_percentage * 1.61:.1f} km to {final_percentage * 1.61:.1f} km\n\n")
+            logger.info(f"Ended slider with distance from {updated_percentage * 1.61:.1f} km to {final_percentage * 1.61:.1f} km\n\n")
 
         except Exception as e:
-            print(f"Error setting distance range: {e}")
+            logger.info(f"Error setting distance range: {e}")
 
     def set_age_range(self, min_age, max_age):
         """Sets the age range using slider manipulation."""
@@ -105,7 +109,7 @@ class PreferencesHelper:
 
             def adjust_slider(slider, target_age, slider_type):
                 current_age = int(slider.get_attribute('aria-valuenow'))
-                print(f"\nAdjusting {slider_type} from {current_age} to {target_age} years")
+                logger.info(f"\nAdjusting {slider_type} from {current_age} to {target_age} years")
 
                 if current_age == target_age:
                     return current_age
@@ -132,7 +136,7 @@ class PreferencesHelper:
                     action.perform()
                     time.sleep(0.1)
 
-                    print(f"Current age: {current_age}, distance: {age_diff}, movement: {movement:.1f}px")
+                    logger.info(f"Current age: {current_age}, distance: {age_diff}, movement: {movement:.1f}px")
 
                     # Prevent infinite loop if we can't hit exact target
                     if abs(age_diff) <= 1:
@@ -144,7 +148,7 @@ class PreferencesHelper:
                 action.perform()
 
                 final_age = int(slider.get_attribute('aria-valuenow'))
-                print(f"Finished at age: {final_age}")
+                logger.info(f"Finished at age: {final_age}")
                 return final_age
 
             # Adjust both sliders
@@ -155,10 +159,10 @@ class PreferencesHelper:
             time.sleep(0.3)
             final_max = adjust_slider(max_slider, max_age, "Maximum")
 
-            print(f"Final age range: {final_min}-{final_max} years")
+            logger.info(f"Final age range: {final_min}-{final_max} years")
 
         except Exception as e:
-            print(f"Error setting age range: {e}")
+            logger.info(f"Error setting age range: {e}")
 
     def set_sexuality(self, type: Sexuality):
         """
@@ -191,7 +195,7 @@ class PreferencesHelper:
                         )
                         actions.move_to_element(label).click().perform()
                 except StaleElementReferenceException:
-                    print("Checkbox element became stale; attempting to refresh and continue.")
+                    logger.info("Checkbox element became stale; attempting to refresh and continue.")
                     # Refresh the list of checkboxes
                     checkboxes = self.browser.find_elements(By.XPATH, "//input[@type='checkbox']")
 
@@ -203,12 +207,12 @@ class PreferencesHelper:
             actions.move_to_element(option).click().perform()
 
         except StaleElementReferenceException:
-            print("Element became stale during interaction. Retrying...")
+            logger.info("Element became stale during interaction. Retrying...")
             self.set_sexuality(type)  # Retry the operation
         except TimeoutException:
-            print("Timed out waiting for elements. Please check the page state.")
+            logger.info("Timed out waiting for elements. Please check the page state.")
         except Exception as e:
-            print(f"An unexpected error occurred: {e}")
+            logger.info(f"An unexpected error occurred: {e}")
         finally:
             # Close the settings menu
             self.navigate_to_main_settings()
@@ -221,7 +225,7 @@ class PreferencesHelper:
             EC.element_to_be_clickable((By.XPATH, profile_button_xpath))
         )
         actions.move_to_element(profile_button).click().perform()
-        print("Navigated back to the main settings page.")
+        logger.info("Navigated back to the main settings page.")
 
     def navigate_to_main_screen(self):
         """
@@ -233,4 +237,4 @@ class PreferencesHelper:
             EC.element_to_be_clickable((By.XPATH, back_button_xpath))
         )
         actions.move_to_element(back_button).click().perform()
-        print("Navigated back to the main screen for liking profiles.")
+        logger.info("Navigated back to the main screen for liking profiles.")

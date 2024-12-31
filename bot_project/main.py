@@ -5,14 +5,18 @@ from bot.constants.models import (
     LoginMethods,
 )
 from bot.settings import Settings
+from bot.utils.logger import configure_logger
 
 
 if __name__ == "__main__":
+    # Configure logger
+    configure_logger()
+
     # Load settings
     settings = Settings()
 
     # creates instance of session
-    with Session(settings=settings, use_local_proxy_server=True) as session:
+    with Session(settings=settings) as session:
         session.login(LoginMethods.FACEBOOK)
         session.set_preferences()
         session.start_swiping()

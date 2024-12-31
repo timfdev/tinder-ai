@@ -1,21 +1,9 @@
 import enum
-from pydantic import BaseModel
-from typing import Optional
 
 
 class LoginMethods(enum.Enum):
     FACEBOOK = "facebook"
     GOOGLE = "google"
-
-
-class Proxy(BaseModel):
-    host: Optional[str]
-    port: Optional[int]
-    user: Optional[str]
-    pwd: Optional[str]
-
-    def __bool__(self) -> bool:
-        return all([self.host, self.port, self.user, self.pwd])
 
 
 class Xpaths(enum.Enum):

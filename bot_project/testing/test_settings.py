@@ -4,4 +4,3 @@ from bot.settings import Settings
 settings = Settings()
 print(settings)
 print()
-print(f"Proxy: {settings.proxy}")
