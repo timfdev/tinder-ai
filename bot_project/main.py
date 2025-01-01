@@ -6,6 +6,7 @@ from bot.constants.models import (
 )
 from bot.settings import Settings
 from bot.utils.logger import configure_logger
+import time
 
 
 if __name__ == "__main__":
@@ -19,6 +20,7 @@ if __name__ == "__main__":
     with Session(settings=settings) as session:
         session.login(LoginMethods.FACEBOOK)
         session.set_preferences()
+        time.sleep(20000)
         session.start_swiping()
 
     exit()

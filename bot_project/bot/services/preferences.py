@@ -17,14 +17,14 @@ logger = getLogger(__name__)
 
 
 class PreferencesService:
-    delay = 8
+    WEBDRIVER_WAIT_TIME = 10
 
     def __init__(self, browser):
         self.browser = browser
         try:
             logger.info('Open profile')
             xpath = '//*[@href="/app/profile"]'
-            WebDriverWait(self.browser, self.delay).until(
+            WebDriverWait(self.browser, self.WEBDRIVER_WAIT_TIME).until(
                 EC.presence_of_element_located((By.XPATH, xpath)))
             self.browser.find_element(By.XPATH, xpath).click()
             logger.info('found profile page')
@@ -35,8 +35,12 @@ class PreferencesService:
 
     def set_preferences(self, settings: Settings):
         self.set_distance_range(settings.distance_range)
+        time.sleep(random.randint(0, 2))
         self.set_age_range(settings.age_range_min, settings.age_range_max)
+        time.sleep(random.randint(0, 2))
         self.set_sexuality(settings.gender_preference)
+        time.sleep(random.randint(0, 2))
+        self.set_global(settings.set_global)
         time.sleep(random.randint(1, 3))
         self.navigate_to_main_screen()
         time.sleep(random.randint(1, 3))
@@ -63,10 +67,10 @@ class PreferencesService:
             slider_track_xpath = '//*[@data-testid="slider-rail"]'
 
             # Locate the slider handle and track
-            slider_handle = WebDriverWait(self.browser, 5).until(
+            slider_handle = WebDriverWait(self.browser, self.WEBDRIVER_WAIT_TIME).until(
                 EC.presence_of_element_located((By.XPATH, slider_handle_xpath))
             )
-            slider_track = WebDriverWait(self.browser, 5).until(
+            slider_track = WebDriverWait(self.browser, self.WEBDRIVER_WAIT_TIME).until(
                 EC.presence_of_element_located((By.XPATH, slider_track_xpath))
             )
 
@@ -100,10 +104,10 @@ class PreferencesService:
     def set_age_range(self, min_age, max_age):
         """Sets the age range using slider manipulation."""
         try:
-            min_slider = WebDriverWait(self.browser, self.delay).until(
+            min_slider = WebDriverWait(self.browser, self.WEBDRIVER_WAIT_TIME).until(
                 EC.presence_of_element_located((By.XPATH, '//*[@data-testid="min-age-handle"]'))
             )
-            max_slider = WebDriverWait(self.browser, self.delay).until(
+            max_slider = WebDriverWait(self.browser, self.WEBDRIVER_WAIT_TIME).until(
                 EC.presence_of_element_located((By.XPATH, '//*[@data-testid="max-age-handle"]'))
             )
 
@@ -171,7 +175,7 @@ class PreferencesService:
         try:
             # Locate the "Looking for" button
             settings_button_xpath = "//button[@aria-label='Looking for' and not(@data-id) and not(@data-route)]"
-            settings_button = WebDriverWait(self.browser, self.delay).until(
+            settings_button = WebDriverWait(self.browser, self.WEBDRIVER_WAIT_TIME).until(
                 EC.element_to_be_clickable((By.XPATH, settings_button_xpath))
             )
 
@@ -181,7 +185,7 @@ class PreferencesService:
             time.sleep(0.3)
 
             # Wait for the checkbox list to appear
-            WebDriverWait(self.browser, self.delay).until(
+            WebDriverWait(self.browser, self.WEBDRIVER_WAIT_TIME).until(
                 EC.presence_of_element_located((By.XPATH, "//ul[contains(@class, 'List')]"))
             )
 
@@ -201,7 +205,7 @@ class PreferencesService:
 
             # Locate and select the given option
             option_xpath = f"//label[contains(., '{type.value}')]"
-            option = WebDriverWait(self.browser, self.delay).until(
+            option = WebDriverWait(self.browser, self.WEBDRIVER_WAIT_TIME).until(
                 EC.element_to_be_clickable((By.XPATH, option_xpath))
             )
             actions.move_to_element(option).click().perform()
@@ -217,11 +221,36 @@ class PreferencesService:
             # Close the settings menu
             self.navigate_to_main_settings()
 
+    def set_global(self, enable_global):
+        """
+        Toggle global mode.
+        :param enable_global: Boolean indicating whether to enable or disable global mode.
+        """
+        try:
+            # Locate the toggle input element for the Global option
+            xpath_global_toggle = '//input[@name="global" and @type="checkbox"]'
+            global_toggle = WebDriverWait(self.browser, self.WEBDRIVER_WAIT_TIME).until(
+                EC.presence_of_element_located((By.XPATH, xpath_global_toggle))
+            )
+
+            # Check the current state of the toggle
+            is_activated = global_toggle.get_attribute("aria-checked") == "true"
+
+            # Toggle if the current state doesn't match the desired state
+            if enable_global != is_activated:
+                global_toggle.click()
+                logger.info(f"Global mode {'enabled' if enable_global else 'disabled'} successfully.")
+            else:
+                logger.info(f"Global mode is already {'enabled' if enable_global else 'disabled'}.")
+
+        except Exception as e:
+            logger.error(f"Error occurred in set_global: {e}")
+
     def navigate_to_main_settings(self):
         actions = ActionChains(self.browser)
         # Navigate back to the main settings page
         profile_button_xpath = "//a[@title='My Profile' and contains(@href, '/app/profile')]"
-        profile_button = WebDriverWait(self.browser, self.delay).until(
+        profile_button = WebDriverWait(self.browser, self.WEBDRIVER_WAIT_TIME).until(
             EC.element_to_be_clickable((By.XPATH, profile_button_xpath))
         )
         actions.move_to_element(profile_button).click().perform()
@@ -233,7 +262,7 @@ class PreferencesService:
         """
         actions = ActionChains(self.browser)
         back_button_xpath = "//a[@title='Back' and contains(@href, '/app/recs')]"
-        back_button = WebDriverWait(self.browser, self.delay).until(
+        back_button = WebDriverWait(self.browser, self.WEBDRIVER_WAIT_TIME).until(
             EC.element_to_be_clickable((By.XPATH, back_button_xpath))
         )
         actions.move_to_element(back_button).click().perform()

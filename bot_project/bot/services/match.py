@@ -9,6 +9,9 @@ logger = getLogger(__name__)
 
 
 class MatchService:
+
+    WEBDRIVER_WAIT_TIME = 10
+
     def __init__(self, browser):
         """
         Initialize the Matcher class.
@@ -26,7 +29,7 @@ class MatchService:
                 "//button[contains(@class, 'gamepad-button')]"
                 "[.//span[contains(@class, 'Hidden') and text()='Like']]"
             )
-            like_button = WebDriverWait(self.browser, 5).until(
+            like_button = WebDriverWait(self.browser, self.WEBDRIVER_WAIT_TIME).until(
                 EC.element_to_be_clickable((By.XPATH, like_button_xpath))
             )
 
@@ -53,7 +56,7 @@ class MatchService:
                 "//button[contains(@class, 'gamepad-button')]"
                 "[.//span[contains(@class, 'Hidden') and (text()='Nope' or text()='No')]]"
             )
-            dislike_button = WebDriverWait(self.browser, 5).until(
+            dislike_button = WebDriverWait(self.browser, self.WEBDRIVER_WAIT_TIME).until(
                 EC.element_to_be_clickable((By.XPATH, dislike_button_xpath))
             )
 

@@ -15,7 +15,7 @@ logger = getLogger(__name__)
 
 
 class LoginService:
-    delay = 5
+    WEBDRIVER_WAIT_TIME = 10
 
     def __init__(self, browser):
         self.browser = browser
@@ -25,7 +25,7 @@ class LoginService:
         try:
             xpath = "//a[contains(., 'Log in')]"
 
-            wait = WebDriverWait(self.browser, self.delay)
+            wait = WebDriverWait(self.browser, self.WEBDRIVER_WAIT_TIME)
             button = wait.until(EC.element_to_be_clickable((By.XPATH, xpath)))
             # Ensure the button is displayed before clicking
             if button.is_displayed():
@@ -48,7 +48,7 @@ class LoginService:
         # wait for google button to appear
         xpath = '//*[@aria-label="Log in with Google"]'
         try:
-            WebDriverWait(self.browser, self.delay).until(EC.presence_of_element_located(
+            WebDriverWait(self.browser, self.WEBDRIVER_WAIT_TIME).until(EC.presence_of_element_located(
                 (By.XPATH, xpath)))
 
             self.browser.find_element(By.XPATH, xpath).click()
@@ -67,7 +67,7 @@ class LoginService:
 
         try:
             xpath = "//input[@type='email']"
-            WebDriverWait(self.browser, self.delay).until(
+            WebDriverWait(self.browser, self.WEBDRIVER_WAIT_TIME).until(
                 EC.presence_of_element_located((By.XPATH, xpath)))
 
             emailfield = self.browser.find_element(By.XPATH, xpath)
@@ -80,7 +80,7 @@ class LoginService:
 
         try:
             xpath = "//input[@type='password']"
-            WebDriverWait(self.browser, self.delay).until(
+            WebDriverWait(self.browser, self.WEBDRIVER_WAIT_TIME).until(
                 EC.presence_of_element_located((By.XPATH, xpath)))
 
             pwdfield = self.browser.find_element(By.XPATH, xpath)
@@ -101,7 +101,7 @@ class LoginService:
         # Wait for Facebook login button
         try:
             xpath = '//*[@aria-label="Log in with Facebook"]'
-            WebDriverWait(self.browser, self.delay).until(
+            WebDriverWait(self.browser, self.WEBDRIVER_WAIT_TIME).until(
                 EC.presence_of_element_located((By.XPATH, xpath))
             )
             self.browser.find_element(By.XPATH, xpath).click()
@@ -120,7 +120,7 @@ class LoginService:
         try:
             # Check for "Continue as" button dynamically
             xpath_continue = '//div[starts-with(@aria-label, "Continue as")]'
-            WebDriverWait(self.browser, self.delay).until(
+            WebDriverWait(self.browser, self.WEBDRIVER_WAIT_TIME).until(
                 EC.presence_of_element_located((By.XPATH, xpath_continue))
             )
             self.browser.find_element(By.XPATH, xpath_continue).click()
@@ -135,12 +135,12 @@ class LoginService:
                 xpath_button = '//*[@id="loginbutton"]'
 
                 # Wait for email field and enter credentials
-                emailfield = WebDriverWait(self.browser, self.delay).until(
+                emailfield = WebDriverWait(self.browser, self.WEBDRIVER_WAIT_TIME).until(
                     EC.presence_of_element_located((By.XPATH, xpath_email))
                 )
                 emailfield.send_keys(email)
 
-                pwdfield = WebDriverWait(self.browser, self.delay).until(
+                pwdfield = WebDriverWait(self.browser, self.WEBDRIVER_WAIT_TIME).until(
                     EC.presence_of_element_located((By.XPATH, xpath_password))
                 )
                 pwdfield.send_keys(password)
@@ -160,7 +160,7 @@ class LoginService:
         self._accept_cookies()
 
         xpath = '//div[@aria-describedby="phoneErrorMessage"]/div/div'
-        WebDriverWait(self.browser, self.delay).until(EC.presence_of_element_located(
+        WebDriverWait(self.browser, self.WEBDRIVER_WAIT_TIME).until(EC.presence_of_element_located(
             (By.XPATH, xpath)))
         btn = self.browser.find_element(By.XPATH, xpath)
         btn.click()
@@ -189,7 +189,7 @@ class LoginService:
     def _accept_location_notification(self):
         try:
             xpath = '//*[@data-testid="allow"]'
-            WebDriverWait(self.browser, self.delay).until(
+            WebDriverWait(self.browser, self.WEBDRIVER_WAIT_TIME).until(
                 EC.presence_of_element_located((By.XPATH, xpath)))
 
             locationBtn = self.browser.find_element(By.XPATH, xpath)
@@ -204,7 +204,7 @@ class LoginService:
     def _deny_overlayed_notifications(self):
         try:
             xpath = '//*[@data-testid="decline"]'
-            WebDriverWait(self.browser, self.delay).until(
+            WebDriverWait(self.browser, self.WEBDRIVER_WAIT_TIME).until(
                 EC.presence_of_element_located((By.XPATH, xpath)))
 
             self.browser.find_element(By.XPATH, xpath).click()
@@ -219,7 +219,7 @@ class LoginService:
         logger.info("Accepting cookies...")
         try:
             xpath = '//*[@type="button"]'
-            WebDriverWait(self.browser, self.delay).until(
+            WebDriverWait(self.browser, self.WEBDRIVER_WAIT_TIME).until(
                 EC.element_to_be_clickable((By.XPATH, xpath))
             )
             buttons = self.browser.find_elements(By.XPATH, xpath)

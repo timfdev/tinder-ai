@@ -21,6 +21,7 @@ class Settings(BaseSettings):
     gender_preference: Sexuality = Field(
         Sexuality.EVERYONE, env="GENDER_PREFERENCE"
     )
+    set_global: bool = Field(False, env="SET_GLOBAL")
 
     # Bot Behavior
     swipe_limit: int = Field(100, env="SWIPE_LIMIT")

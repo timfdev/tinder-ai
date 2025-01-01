@@ -26,6 +26,9 @@ logger = getLogger(__name__)
 
 
 class Session:
+
+    WEBDRIVER_WAIT_TIME = 10
+
     def __init__(
         self,
         settings: Settings,
@@ -89,6 +92,8 @@ class Session:
         )
         location_setter.configure_location()
 
+        time.sleep(2)
+
         self.started = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
         logger.info(f"Started session: {self.started}\n\n")
 
@@ -142,7 +147,7 @@ class Session:
         if "tinder.com" not in self.browser.current_url:
             self.browser.get("https://tinder.com/?lang=en")
             try:
-                WebDriverWait(self.browser, 5).until(
+                WebDriverWait(self.browser, self.WEBDRIVER_WAIT_TIME).until(
                     EC.url_contains("tinder.com")
                 )
             except TimeoutException:
@@ -151,13 +156,15 @@ class Session:
 
         try:
             # Wait for the app page specifically, indicating login success
-            WebDriverWait(self.browser, 5).until(
+            WebDriverWait(self.browser, self.WEBDRIVER_WAIT_TIME).until(
                 EC.url_contains("tinder.com/app")
             )
             logger.info("User is logged in.")
             return True
         except TimeoutException:
-            logger.info("User is not logged in yet. Current URL:", self.browser.current_url)
+            logger.info(
+                f"User is not logged in yet. Current URL:\n {self.browser.current_url}"
+            )
             return False
 
     def start_swiping(self, ratio='90%', sleep=1):
@@ -203,8 +210,10 @@ class Session:
                 )
             except NoSuchElementException as e:
                 logger.info(f"Element not found during processing: {e}. Retrying...")
+                self.browser.refresh()
             except TimeoutException as e:
                 logger.info(f"Timeout encountered: {e}. Retrying...")
+                self.browser.refresh()
             except Exception as e:
                 logger.info(f"Unexpected error occurred: {e}. Skipping this iteration.")
 
