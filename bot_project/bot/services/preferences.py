@@ -24,9 +24,9 @@ class PreferencesService:
         try:
             logger.info('Open profile')
             xpath = '//*[@href="/app/profile"]'
-            WebDriverWait(self.browser, self.WEBDRIVER_WAIT_TIME).until(
-                EC.presence_of_element_located((By.XPATH, xpath)))
-            self.browser.find_element(By.XPATH, xpath).click()
+            profile_button = WebDriverWait(self.browser, self.WEBDRIVER_WAIT_TIME).until(
+                EC.element_to_be_clickable((By.XPATH, xpath)))
+            profile_button.click()
             logger.info('found profile page')
         except TimeoutException:
             logger.info("Timeout while opening profile")
@@ -140,8 +140,6 @@ class PreferencesService:
                     action.perform()
                     time.sleep(0.1)
 
-                    logger.info(f"Current age: {current_age}, distance: {age_diff}, movement: {movement:.1f}px")
-
                     # Prevent infinite loop if we can't hit exact target
                     if abs(age_diff) <= 1:
                         break
@@ -223,7 +221,7 @@ class PreferencesService:
 
     def set_global(self, enable_global):
         """
-        Toggle global mode.
+        Toggle global mode to ensure it's explicitly set.
         :param enable_global: Boolean indicating whether to enable or disable global mode.
         """
         try:
@@ -236,12 +234,19 @@ class PreferencesService:
             # Check the current state of the toggle
             is_activated = global_toggle.get_attribute("aria-checked") == "true"
 
-            # Toggle if the current state doesn't match the desired state
+            # Toggle only if necessary
             if enable_global != is_activated:
                 global_toggle.click()
                 logger.info(f"Global mode {'enabled' if enable_global else 'disabled'} successfully.")
             else:
-                logger.info(f"Global mode is already {'enabled' if enable_global else 'disabled'}.")
+                # Even if the state matches, we toggle it off and back on
+                global_toggle.click()  # Turn it off
+                WebDriverWait(self.browser, self.WEBDRIVER_WAIT_TIME).until(
+                    lambda _: global_toggle.get_attribute("aria-checked") == str(not enable_global).lower()
+                )
+                time.sleep(0.5)
+                global_toggle.click()  # Turn it back on
+                logger.info(f"Global mode {'enabled' if enable_global else 'disabled'}.")
 
         except Exception as e:
             logger.error(f"Error occurred in set_global: {e}")

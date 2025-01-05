@@ -6,8 +6,11 @@ from typing import Optional
 
 class Settings(BaseSettings):
     # Login Credentials
-    facebook_email: str = Field(..., env="FACEBOOK_EMAIL")  # Required
-    facebook_password: str = Field(..., env="FACEBOOK_PASSWORD")  # Required
+    facebook_email: Optional[str] = Field(None, env="FACEBOOK_EMAIL")
+    facebook_password: Optional[str] = Field(None, env="FACEBOOK_PASSWORD")
+
+    google_email: Optional[str] = Field(None, env="FACEBOOK_EMAIL")
+    google_password: Optional[str] = Field(None, env="FACEBOOK_PASSWORD")
 
     # Proxy Configuration
     proxy_url: Optional[str] = Field(None, env="PROXY_URL")

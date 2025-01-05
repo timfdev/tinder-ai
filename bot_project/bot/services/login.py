@@ -5,11 +5,14 @@ from selenium.common.exceptions import (
     TimeoutException,
     ElementClickInterceptedException,
     StaleElementReferenceException,
-    NoSuchElementException
+    NoSuchElementException,
+    NoSuchWindowException
 )
 from selenium.webdriver.common.keys import Keys
 import time
 from logging import getLogger
+from selenium.webdriver.common.action_chains import ActionChains
+
 
 logger = getLogger(__name__)
 
@@ -19,6 +22,7 @@ class LoginService:
 
     def __init__(self, browser):
         self.browser = browser
+        self.main_window_handle = self.browser.current_window_handle
         self._accept_cookies()
 
     def _click_login_button(self):
@@ -27,196 +31,130 @@ class LoginService:
 
             wait = WebDriverWait(self.browser, self.WEBDRIVER_WAIT_TIME)
             button = wait.until(EC.element_to_be_clickable((By.XPATH, xpath)))
-            # Ensure the button is displayed before clicking
+
+            # Ensure the button is displayed before interacting
             if button.is_displayed():
-                button.click()
-                logger.info("Button clicked successfully!")
+                actions = ActionChains(self.browser)
+                actions.move_to_element(button).click().perform()
+                logger.info("Login button clicked successfully!")
+                time.sleep(3)
             else:
-                logger.info("Button is not displayed.")
-            button.click()
-            time.sleep(3)
+                logger.warning("Login button is not displayed.")
 
         except TimeoutException:
+            logger.error("Timeout while waiting for the login button.")
             raise
 
         except ElementClickInterceptedException:
-            pass
+            logger.warning("ElementClickInterceptedException occurred while clicking the login button.")
 
     def login_by_google(self, email, password):
+        logger.info("Logging in with Google...")
         self._click_login_button()
 
-        # wait for google button to appear
-        xpath = '//*[@aria-label="Log in with Google"]'
+        # Wait for Google login button and click
         try:
-            WebDriverWait(self.browser, self.WEBDRIVER_WAIT_TIME).until(EC.presence_of_element_located(
-                (By.XPATH, xpath)))
-
-            self.browser.find_element(By.XPATH, xpath).click()
-
+            xpath = '//*[@aria-label="Log in with Google"]'
+            google_button = WebDriverWait(self.browser, self.WEBDRIVER_WAIT_TIME).until(
+                EC.element_to_be_clickable((By.XPATH, xpath))
+            )
+            actions = ActionChains(self.browser)
+            actions.move_to_element(google_button).click().perform()
+            logger.info("Clicked Google login button.")
         except TimeoutException:
+            logger.error("Timeout while waiting for Google login button.")
             raise
-        except StaleElementReferenceException:
-            # page was still loading when attempting to click facebook login
-            time.sleep(4)
-            self.browser.find_element(By.XPATH, xpath).click()
 
+        # Switch to the popup
         if not self._change_focus_to_pop_up():
-            logger.info("FAILED TO CHANGE FOCUS TO POPUP")
-            logger.info("Let's try again...")
-            return self.login_by_google(email, password)
+            logger.error("Failed to switch focus to Google popup.")
+            return False
 
+        # Handle Google login flow
         try:
-            xpath = "//input[@type='email']"
-            WebDriverWait(self.browser, self.WEBDRIVER_WAIT_TIME).until(
-                EC.presence_of_element_located((By.XPATH, xpath)))
+            # Enter email
+            email_xpath = "//input[@type='email']"
+            email_field = WebDriverWait(self.browser, self.WEBDRIVER_WAIT_TIME).until(
+                EC.presence_of_element_located((By.XPATH, email_xpath))
+            )
+            email_field.send_keys(email)
+            email_field.send_keys(Keys.ENTER)
+            logger.info("Entered email and proceeded.")
 
-            emailfield = self.browser.find_element(By.XPATH, xpath)
-            emailfield.send_keys(email)
-            emailfield.send_keys(Keys.ENTER)
-            # sleeping 3 seconds for passwordfield to come through
-            time.sleep(3)
-        except TimeoutException:
-            raise
-
-        try:
-            xpath = "//input[@type='password']"
-            WebDriverWait(self.browser, self.WEBDRIVER_WAIT_TIME).until(
-                EC.presence_of_element_located((By.XPATH, xpath)))
-
-            pwdfield = self.browser.find_element(By.XPATH, xpath)
-            pwdfield.send_keys(password)
-            pwdfield.send_keys(Keys.ENTER)
+            # Wait for password field
+            password_xpath = "//input[@type='password']"
+            password_field = WebDriverWait(self.browser, self.WEBDRIVER_WAIT_TIME).until(
+                EC.presence_of_element_located((By.XPATH, password_xpath))
+            )
+            password_field.send_keys(password)
+            password_field.send_keys(Keys.ENTER)
+            logger.info("Entered password and proceeded.")
 
         except TimeoutException:
+            logger.error("Timeout during Google login flow.")
+            raise
+        except Exception as e:
+            logger.error(f"Error during Google login: {e}")
             raise
 
+        # Switch back to the main window
         self._change_focus_to_main_window()
-        self._handle_popups()
+        logger.info("Switched focus back to the main window.")
+        return True
 
     def login_by_facebook(self, email, password):
-
         logger.info("Logging in with Facebook...")
         self._click_login_button()
 
         # Wait for Facebook login button
         try:
             xpath = '//*[@aria-label="Log in with Facebook"]'
-            WebDriverWait(self.browser, self.WEBDRIVER_WAIT_TIME).until(
-                EC.presence_of_element_located((By.XPATH, xpath))
+            facebook_button = WebDriverWait(self.browser, self.WEBDRIVER_WAIT_TIME).until(
+                EC.element_to_be_clickable((By.XPATH, xpath))
             )
-            self.browser.find_element(By.XPATH, xpath).click()
+            actions = ActionChains(self.browser)
+            actions.move_to_element(facebook_button).click().perform()
             logger.info("Clicked Facebook login button.")
         except TimeoutException:
-            logger.info("Timeout while waiting for Facebook login button.")
+            logger.error("Timeout while waiting for Facebook login button.")
             raise
-            return
 
-        # Switch to popup
+        # Switch to the popup
         if not self._change_focus_to_pop_up():
-            logger.info("Failed to switch focus to Facebook popup.")
-            return self.login_by_facebook(email, password)
+            return False
 
-        # Handle "Continue as" or fallback to email/password
-        try:
-            # Check for "Continue as" button dynamically
-            xpath_continue = '//div[starts-with(@aria-label, "Continue as")]'
-            WebDriverWait(self.browser, self.WEBDRIVER_WAIT_TIME).until(
-                EC.presence_of_element_located((By.XPATH, xpath_continue))
-            )
-            self.browser.find_element(By.XPATH, xpath_continue).click()
-            logger.info("Clicked 'Continue as' button.")
-        except TimeoutException:
-            logger.info("'Continue as' button not found. Falling back to manual login...")
-
-            # Fallback to entering email and password
+        if not self._click_continue_as():
+            logger.info("Attempting manual login.")
             try:
                 xpath_email = '//*[@id="email"]'
                 xpath_password = '//*[@id="pass"]'
                 xpath_button = '//*[@id="loginbutton"]'
 
-                # Wait for email field and enter credentials
-                emailfield = WebDriverWait(self.browser, self.WEBDRIVER_WAIT_TIME).until(
+                email_field = WebDriverWait(self.browser, self.WEBDRIVER_WAIT_TIME).until(
                     EC.presence_of_element_located((By.XPATH, xpath_email))
                 )
-                emailfield.send_keys(email)
+                email_field.send_keys(email)
 
-                pwdfield = WebDriverWait(self.browser, self.WEBDRIVER_WAIT_TIME).until(
+                password_field = WebDriverWait(self.browser, self.WEBDRIVER_WAIT_TIME).until(
                     EC.presence_of_element_located((By.XPATH, xpath_password))
                 )
-                pwdfield.send_keys(password)
+                password_field.send_keys(password)
 
-                loginbutton = self.browser.find_element(By.XPATH, xpath_button)
-                loginbutton.click()
-                logger.info("Logged in via Facebook.")
+                login_button = WebDriverWait(self.browser, self.WEBDRIVER_WAIT_TIME).until(
+                    EC.element_to_be_clickable((By.XPATH, xpath_button))
+                )
+                login_button.click()
+                logger.info("Manual email/password login successful.")
+                self._click_continue_as()
             except TimeoutException:
-                logger.info("Timeout occurred during manual Facebook login.")
+                logger.error("Timeout occurred during manual Facebook login.")
                 raise
 
-        # Switch back to main window
+        # Switch back to the main window
         self._change_focus_to_main_window()
-        self._handle_popups()
-
-    def _handle_prefix(self, country):
-        self._accept_cookies()
-
-        xpath = '//div[@aria-describedby="phoneErrorMessage"]/div/div'
-        WebDriverWait(self.browser, self.WEBDRIVER_WAIT_TIME).until(EC.presence_of_element_located(
-            (By.XPATH, xpath)))
-        btn = self.browser.find_element(By.XPATH, xpath)
-        btn.click()
-
-        els = self.browser.find_elements(By.XPATH, '//div')
-        for el in els:
-            try:
-                span = el.find_element(By.XPATH, './/span')
-                if span.text.lower() == country.lower():
-                    logger.info("clicked")
-                    el.click()
-                    break
-                else:
-                    logger.info(span.text)
-            except:
-                continue
-
-    def _handle_popups(self):
-        logger.info("Handling popups...")
-        time.sleep(2)
-        self._accept_cookies()
-        self._accept_location_notification()
-        self._deny_overlayed_notifications()
-        time.sleep(5)
-
-    def _accept_location_notification(self):
-        try:
-            xpath = '//*[@data-testid="allow"]'
-            WebDriverWait(self.browser, self.WEBDRIVER_WAIT_TIME).until(
-                EC.presence_of_element_located((By.XPATH, xpath)))
-
-            locationBtn = self.browser.find_element(By.XPATH, xpath)
-            locationBtn.click()
-            logger.info("ACCEPTED LOCATION.")
-        except TimeoutException:
-            logger.info(
-                "ACCEPTING LOCATION: Loading took too much time! Element probably not presented, so we continue.")
-        except:
-            pass
-
-    def _deny_overlayed_notifications(self):
-        try:
-            xpath = '//*[@data-testid="decline"]'
-            WebDriverWait(self.browser, self.WEBDRIVER_WAIT_TIME).until(
-                EC.presence_of_element_located((By.XPATH, xpath)))
-
-            self.browser.find_element(By.XPATH, xpath).click()
-            logger.info("DENIED NOTIFICATIONS.")
-        except TimeoutException:
-            logger.info(
-                "DENYING NOTIFICATIONS: Loading took too much time! Element probably not presented, so we continue.")
-        except:
-            pass
+        return True
 
     def _accept_cookies(self):
-        logger.info("Accepting cookies...")
         try:
             xpath = '//*[@type="button"]'
             WebDriverWait(self.browser, self.WEBDRIVER_WAIT_TIME).until(
@@ -247,42 +185,41 @@ class LoginService:
         except Exception as e:
             logger.info("Error while accepting cookies:", e)
 
+    def _click_continue_as(self):
+        try:
+            xpath_continue = '//div[starts-with(@aria-label, "Continue as")]'
+            continue_button = WebDriverWait(self.browser, self.WEBDRIVER_WAIT_TIME).until(
+                EC.element_to_be_clickable((By.XPATH, xpath_continue))
+            )
+            ActionChains(self.browser).move_to_element(continue_button).click().perform()
+            logger.info("Clicked 'Continue as' button.")
+        except TimeoutException:
+            logger.info("'Continue as' button not found.")
+
     def _change_focus_to_pop_up(self):
-        max_tries = 50
-        current_tries = 0
-
-        main_window = None
-        while not main_window and current_tries < max_tries:
-            current_tries += 1
-            main_window = self.browser.current_window_handle
-
-        current_tries = 0
-        popup_window = None
-        while not popup_window:
-            current_tries += 1
-            time.sleep(0.30)
-            if current_tries >= max_tries:
-                logger.info("tries exceeded")
-                return False
-
-            for handle in self.browser.window_handles:
+        main_window = self.browser.current_window_handle
+        for _ in range(50):  # Retry mechanism
+            handles = self.browser.window_handles
+            for handle in handles:
                 if handle != main_window:
-                    popup_window = handle
-                    break
+                    self.browser.switch_to.window(handle)
+                    logger.info(f"Switched to popup window: {handle}")
 
-        self.browser.switch_to.window(popup_window)
-        return True
+                    # Ensure popup is loaded
+                    WebDriverWait(self.browser, self.WEBDRIVER_WAIT_TIME).until(
+                        lambda driver: "facebook" in driver.current_url or "google" in driver.current_url
+                    )
+                    return True
+            time.sleep(0.3)
+
+        logger.error("Popup window not found.")
+        return False
 
     def _change_focus_to_main_window(self):
-        main_window = None
-        if len(self.browser.window_handles) == 1:
-            main_window = self.browser.current_window_handle
-        else:
-            popup_window = self.browser.current_window_handle
-            while not main_window:
-                for handle in self.browser.window_handles:
-                    if handle != popup_window:
-                        main_window = handle
-                        break
+        try:
+            self.browser.switch_to.window(self.main_window_handle)
+            logger.info("Switched back to the main window.")
+        except NoSuchWindowException:
+            logger.error("Main window is no longer available.")
 
-        self.browser.switch_to.window(main_window)
+

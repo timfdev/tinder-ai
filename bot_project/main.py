@@ -6,8 +6,8 @@ from bot.constants.models import (
 )
 from bot.settings import Settings
 from bot.utils.logger import configure_logger
+from pathlib import Path
 import time
-
 
 if __name__ == "__main__":
     # Configure logger
@@ -17,10 +17,14 @@ if __name__ == "__main__":
     settings = Settings()
 
     # creates instance of session
-    with Session(settings=settings) as session:
+    with Session(
+        settings=settings,
+        user_data=Path("user_data")
+    ) as session:
         session.login(LoginMethods.FACEBOOK)
-        session.set_preferences()
-        time.sleep(20000)
+        # session.set_preferences()
+        session.handle_matches()
+        time.sleep(2000)
         session.start_swiping()
 
     exit()
