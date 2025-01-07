@@ -1,8 +1,8 @@
 from pydantic import Field
 from pydantic_settings import BaseSettings
-from bot.constants.models import Sexuality
+from bot.src.constants.models import Sexuality
 from typing import Optional
-from bot.constants.models import LoginMethods
+from bot.src.constants.models import LoginMethods
 
 
 class Settings(BaseSettings):

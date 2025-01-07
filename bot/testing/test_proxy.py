@@ -1,5 +1,5 @@
-from bot.session import Session
-from bot.settings import Settings
+from src.session import Session
+from src.settings import Settings
 import time
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait

@@ -1,8 +1,7 @@
-from bot.session import Session
-from bot.services.messenger_api import MessengerService
-from bot.settings import Settings
-from bot.utils.logger import configure_logger
-from pathlib import Path
+from bot.src.session import Session
+from bot.src.services.messenger_api import MessengerService
+from bot.src.settings import Settings
+from bot.src.utils.logger import configure_logger
 import argparse
 import time
 import logging
@@ -85,10 +84,9 @@ def main():
     # Create session instance
     with Session(
         settings=settings,
-        user_data=Path("user_data"),
+        persist_user_data=True,
         messenger_service=MessengerService(
-            "http://localhost:8000",
-            mock=True
+            "http://localhost:8000", mock=True
         )
     ) as session:
         try:

@@ -6,8 +6,8 @@ from selenium.common.exceptions import (
     StaleElementReferenceException
 )
 from selenium.webdriver.common.action_chains import ActionChains
-from bot.constants.models import Sexuality
-from bot.settings import Settings
+from bot.src.constants.models import Sexuality
+from bot.src.settings import Settings
 import time
 import random
 from logging import getLogger

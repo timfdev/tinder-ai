@@ -282,6 +282,6 @@ class Match:
                 EC.element_to_be_clickable((By.CSS_SELECTOR, "a[href='/app/matches'] div.close"))
             )
             close_button.click()
-            logger.info(f"Closed profile for {self.profile.name}")
+            logger.debug(f"Closed profile for {self.profile.name}")
         except Exception as e:
             logger.error(f"Error closing profile: {e}")
