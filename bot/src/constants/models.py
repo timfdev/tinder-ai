@@ -13,7 +13,7 @@ class SessionData:
     sent_openings: int = 0
     sent_replies: int = 0
 
-    def __str__(self):
+    def __str__(self) -> str:
         return (
             f"  Session:\n"
             f"   Duration   : {self.duration} seconds\n"

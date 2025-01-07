@@ -1,31 +1,28 @@
 import requests
 from logging import getLogger
+from typing import Tuple, Optional
 
 logger = getLogger(__name__)
 
 
 class LocationService:
-    def __init__(self, browser, settings):
+    def __init__(self, browser, settings) -> None:
         """
-        :param browser:
-            The Selenium WebDriver instance (Chrome, etc.).
-        :param settings:
-            Your Settings instance containing (optional)
-            coordinates, proxy, etc.
-        :param proxy_url:
-            URL of the local proxy server, e.g. "http://localhost:3128".
-            If provided, we will route our requests through it.
+        Initialize the LocationService with a browser instance and settings.
+
+        :param browser: Selenium WebDriver instance (e.g., Chrome).
+        :param settings: Settings instance containing coordinates, proxy, etc.
         """
         self.browser = browser
         self.settings = settings
         self.proxy_url = settings.proxy_url
 
-    def get_public_ip(self):
+    def get_public_ip(self) -> str:
         """
-        Fetch public IP via requests to https://ipinfo.io/json,
-        optionally using the local proxy if provided.
+        Fetch the public IP address using ipinfo.io.
+
+        :return: Public IP address as a string, or None if unable to fetch.
         """
-        # If proxy_url is provided, route the requests through it
         proxies = {
             "http": self.proxy_url,
             "https": self.proxy_url
@@ -49,11 +46,14 @@ class LocationService:
 
         return None
 
-    def get_coordinates_from_ip(self, ip_address):
+    def get_coordinates_from_ip(
+        self, ip_address
+    ) -> Optional[Tuple[float, float]]:
         """
-        Get latitude/longitude for the given IP address using
-        https://ipinfo.io/<ip>/geo.
-        Again, we use the local proxy if specified.
+        Get latitude and longitude for a given IP address using ipinfo.io.
+
+        :param ip_address: IP address to fetch coordinates for.
+        :return: Tuple of (latitude, longitude) or None if unable to fetch.
         """
         proxies = {
             "http": self.proxy_url,
@@ -84,9 +84,15 @@ class LocationService:
 
         return None
 
-    def set_custom_location(self, latitude, longitude, accuracy="100%"):
+    def set_custom_location(
+        self, latitude, longitude, accuracy="100%"
+    ) -> None:
         """
-        Sets a custom geolocation in the browser via Chrome DevTools Protocol.
+        Set a custom geolocation in the browser using Chrome DevTools Protocol.
+
+        :param latitude: Latitude to set.
+        :param longitude: Longitude to set.
+        :param accuracy: Accuracy percentage (default is "100%").
         """
         try:
             accuracy_value = int(accuracy.rstrip('%'))
@@ -104,22 +110,21 @@ class LocationService:
             f"lat={latitude}, lon={longitude}, acc={accuracy_value}%"
         )
 
-    def configure_location(self):
+    def configure_location(self) -> None:
         """
-        1. If settings.coordinates is provided, use that directly.
-        2. Otherwise, if settings.proxy is set, we attempt to find
-           the proxy IP via requests (through proxy_url if any),
-           then fetch coordinates from ipinfo.io, and set them.
-        3. If nothing is provided, skip.
+        Configure the browser's geolocation based on settings or proxy.
+
+        1. Use provided coordinates if available.
+        2. If a proxy is set, fetch the public IP and coordinates,
+           then set them.
+        3. Skip if no data is available.
         """
         lat, lon = self.settings.location_lat, self.settings.location_lon
-        # 1) If explicit coordinates exist, just set them
         if lat and lon:
             logger.info(f"Using provided coordinates: {lat}, {lon}")
             self.set_custom_location(lat, lon)
             return
 
-        # 2) If we have a proxy set, we try to get the public IP and coords
         if self.proxy_url:
             ip_address = self.get_public_ip()
             if ip_address:
@@ -141,5 +146,4 @@ class LocationService:
         else:
             logger.info("No proxy configured and no coordinates provided.")
 
-        # If we haven't returned by now, it means we failed or had no data.
         logger.info("Skipping custom geolocation override.")

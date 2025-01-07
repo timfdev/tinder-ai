@@ -1,7 +1,7 @@
 import logging
 
 
-def configure_logger(level: int = logging.INFO):
+def configure_logger(level: int = logging.INFO) -> None:
     """
     Configure the root logger for the entire application.
     """

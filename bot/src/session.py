@@ -38,6 +38,7 @@ class Session:
         self,
         settings: Settings,
         messenger_service: BaseMessengerService,
+        mock: bool = False,
         headless: bool = False,
         persist_user_data: bool = False
     ) -> None:
@@ -61,6 +62,7 @@ class Session:
             bool, optional
         """
         self.session_data = SessionData()
+        self.mock = mock
         self.start_session = time.time()
 
         options = uc.ChromeOptions()
@@ -440,16 +442,19 @@ class Session:
         if item_type == 'matches':
             logger.info("Handling matches...")
             self.go_to_matches()
+            self._handle_potential_popups()
             data_list = self._get_matches_data()
         else:
             logger.info("Handling unread messages...")
             self.go_to_messages()
+            self._handle_potential_popups()
             data_list = self._get_unread_messages_data()
 
         self._random_sleep()
 
         logger.info(f"Found {len(data_list)} items to process")
 
+        match_obj = None
         # Iterate over match/message data
         for index, item_id in enumerate(data_list):
             try:
@@ -482,7 +487,7 @@ class Session:
                     f"- {match_obj.profile.name, match_obj.profile.age}")
                 self._random_sleep()
 
-                # d) Generate either an opener or a reply
+                # Generate either an opener or a reply
                 if item_type == 'matches':
                     message_to_send = self.messenger_service.generate_opener(
                         profile=match_obj.profile
@@ -490,16 +495,16 @@ class Session:
                 else:
                     message_to_send = self.messenger_service.generate_reply(
                         profile=match_obj.profile,
-                        last_messages=match_obj.profile.last_messages
+                        last_messages=match_obj.profile.last_messages,
                     )
 
-                # e) Send the message, if any
+                # Send the message, if any
                 if message_to_send:
                     if item_type == 'matches':
-                        match_obj.send_opener(message_to_send)
+                        match_obj.send_opener(message_to_send, mock=self.mock)
                         self.session_data.sent_openings += 1
                     else:
-                        match_obj.send_reply(message_to_send)
+                        match_obj.send_reply(message_to_send, mock=self.mock)
                         self.session_data.sent_replies += 1
 
                 self._random_sleep()
@@ -507,6 +512,9 @@ class Session:
             except Exception as e:
                 logger.error(f"Error processing item {item_id}: {e}")
                 continue
+            finally:
+                if match_obj is not None:
+                    match_obj.close_profile()
 
     def _get_unread_messages_data(self) -> List[str]:
         """Get list of unread message data"""

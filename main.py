@@ -85,8 +85,9 @@ def main():
     with Session(
         settings=settings,
         persist_user_data=True,
+        mock=True,
         messenger_service=MessengerService(
-            "http://localhost:8000", mock=True
+            "http://localhost:8000"
         )
     ) as session:
         try:
