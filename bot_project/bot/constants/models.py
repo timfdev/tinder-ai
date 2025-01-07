@@ -1,4 +1,14 @@
 import enum
+from dataclasses import dataclass
+
+
+@dataclass
+class SessionData:
+    duration: int = 0
+    likes: int = 0
+    dislikes: int = 0
+    superlikes: int = 0
+    matches: int = 0
 
 
 class LoginMethods(enum.Enum):
@@ -6,12 +16,6 @@ class LoginMethods(enum.Enum):
     GOOGLE = "google"
 
 
-class Xpaths(enum.Enum):
-    CONTENT = '/html/body/div[1]' #'//div[starts-with(@id, "q-")]'
-    MODAL_MANAGER = '/html/body/div[2]' #'//div[starts-with(@id, "q")]'
-
-
-# Using enum class create enumerations
 class Socials(enum.Enum):
     SNAPCHAT = "snapchat"
     INSTAGRAM = "instagram"

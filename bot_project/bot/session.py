@@ -1,5 +1,6 @@
 import undetected_chromedriver as uc
 from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
 from selenium.common.exceptions import (
@@ -12,11 +13,12 @@ from selenium.common.exceptions import (
 import time
 from bot.services.preferences import PreferencesService
 from bot.services.login import LoginService
-from bot.constants.models import Xpaths, LoginMethods
+from bot_project.bot.services.messenger_api import BaseMessengerService
+from bot.constants.models import LoginMethods
 from bot.settings import Settings
 from pathlib import Path
 import random
-from bot.services.match import MatchService
+from bot.services.match import Match
 import json
 from bot.services.location import LocationService
 from logging import getLogger
@@ -28,12 +30,16 @@ logger = getLogger(__name__)
 class Session:
 
     WEBDRIVER_WAIT_TIME = 10
+    MIN_SLEEP = 1.1
+    MAX_SLEEP = 2.6
+    DEFAULT_WINDOW_SIZE = (1250, 750)
 
     def __init__(
         self,
         settings: Settings,
+        messenger_service: BaseMessengerService,
         headless: bool = False,
-        user_data: Path = None,
+        user_data: Path = None
     ):
         """
         Initializes a session with support for a local proxy server.
@@ -84,7 +90,7 @@ class Session:
         # Initialize the browser
         self.browser = uc.Chrome(options=options)
 
-        self.browser.set_window_size(1250, 750)
+        self.browser.set_window_size(self.DEFAULT_WINDOW_SIZE)
         self.settings = settings
 
         location_setter = LocationService(
@@ -93,7 +99,9 @@ class Session:
         )
         location_setter.configure_location()
 
-        time.sleep(2)
+        self.messenger_service = messenger_service
+
+        self._random_sleep()
 
         self.started = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
         logger.info(f"Started session: {self.started}\n\n")
@@ -118,7 +126,7 @@ class Session:
     def set_preferences(self):
         PreferencesService(browser=self.browser).set_preferences(settings=self.settings)
 
-    def login(self, method: LoginMethods = LoginMethods.FACEBOOK):
+    def login(self, method: LoginMethods):
         if self._is_logged_in():
             return
 
@@ -174,7 +182,57 @@ class Session:
             )
             return False
 
-    def start_swiping(self, ratio='90%', sleep=1):
+    def like(self):
+        """
+        Attempt to like the profile currently on the screen using ActionChains.
+        :return: True if successful, False otherwise.
+        """
+        try:
+            like_button_xpath = (
+                "//button[contains(@class, 'gamepad-button')]"
+                "[.//span[contains(@class, 'Hidden') and text()='Like']]"
+            )
+            like_button = WebDriverWait(self.browser, self.WEBDRIVER_WAIT_TIME).until(
+                EC.element_to_be_clickable((By.XPATH, like_button_xpath))
+            )
+
+            actions = ActionChains(self.browser)
+            actions.move_to_element(like_button).click().perform()
+            return True
+        except NoSuchElementException:
+            logger.info("Like button not found.")
+        except Exception as e:
+            import traceback
+            logger.info(f"Error occurred while liking: {e}")
+            logger.info(traceback.format_exc())
+        return False
+
+    def dislike(self):
+        """
+        Attempt to dislike the profile currently on the screen using ActionChains.
+        :return: True if successful, False otherwise.
+        """
+        try:
+            # Find the button with text "Nope" inside <span class="Hidden">Nope</span>
+            # (If the actual text is different, adjust accordingly.)
+            dislike_button_xpath = (
+                "//button[contains(@class, 'gamepad-button')]"
+                "[.//span[contains(@class, 'Hidden') and (text()='Nope' or text()='No')]]"
+            )
+            dislike_button = WebDriverWait(self.browser, self.WEBDRIVER_WAIT_TIME).until(
+                EC.element_to_be_clickable((By.XPATH, dislike_button_xpath))
+            )
+
+            actions = ActionChains(self.browser)
+            actions.move_to_element(dislike_button).click().perform()
+            return True
+        except NoSuchElementException:
+            logger.info("Dislike button not found.")
+        except Exception as e:
+            logger.info(f"Error occurred while disliking: {e}")
+        return False
+
+    def start_swiping(self, ratio='90%'):
         """
         Start liking or disliking profiles based on the provided amount and ratio.
 
@@ -182,14 +240,13 @@ class Session:
         :param ratio: Percentage chance to like a profile (e.g., '80%' for 80% like).
         :param sleep: Base sleep time between actions in seconds.
         """
-        initial_sleep = sleep
         ratio = float(ratio.strip('%')) / 100  # Convert ratio to float (e.g., '100%' -> 1.0)
 
         if not self._is_logged_in():
             logger.info("Not logged in. Please log in before starting the liking process.")
             return
 
-        matcher = MatchService(browser=self.browser)
+        matcher = Match(browser=self.browser)
         amount_liked = 0
 
         logger.info("\nStarting to like profiles.")
@@ -197,11 +254,6 @@ class Session:
 
         while amount_liked < self.settings.swipe_limit:
             try:
-                if not self._profile_visible():
-                    raise NoSuchElementException("Profile not visible.")
-
-                # Dynamically adjust sleep time
-                sleep_time = random.uniform(0.5, 2.3) * initial_sleep
                 like = random.random() <= ratio
 
                 if like:
@@ -212,22 +264,22 @@ class Session:
                     matcher.dislike()
                     self.session_data['dislike'] += 1
 
-                time.sleep(sleep_time)
+                self._random_sleep()
                 self._handle_potential_popups()
                 logger.info(
                     "Processed "
                     f"{amount_liked} / {self.settings.swipe_limit} profiles."
                 )
             except NoSuchElementException as e:
-                logger.info(f"Element not found during processing: {e}. Retrying...")
+                logger.warning(f"Element not found during processing: {e}. Retrying...")
                 self.browser.refresh()
                 time.sleep(self.WEBDRIVER_WAIT_TIME)
             except TimeoutException as e:
-                logger.info(f"Timeout encountered: {e}. Retrying...")
+                logger.warning(f"Timeout encountered: {e}. Retrying...")
                 self.browser.refresh()
                 time.sleep(self.WEBDRIVER_WAIT_TIME)
             except Exception as e:
-                logger.info(f"Unexpected error occurred: {e}. Skipping this iteration.")
+                logger.error(f"Unexpected error occurred: {e}. Skipping this iteration.")
 
     def go_to_matches(self):
         """
@@ -273,19 +325,20 @@ class Session:
             raise
         except Exception as e:
             logger.error(f"An error occurred while navigating to 'Messages': {e}")
-            raise
+            self._handle_potential_popups()
 
     def handle_matches(self):
+        self._random_sleep()
         self._handle_potential_popups()
         logger.info("Handling matches...")
         self.go_to_matches()
-        time.sleep(2)
+        self._random_sleep()
 
-        # Get initial list of match elements and their IDs
-        matches_data = self.get_matches_data()
+        # Get list of match data first
+        matches_data = self._get_matches_data()
         logger.info(f"Found {len(matches_data)} matches to process")
 
-        # Process each match by finding and clicking its element
+        # Process each match using their ID
         for index, match_data in enumerate(matches_data):
             try:
                 logger.info(f"Processing match {index + 1} of {len(matches_data)}")
@@ -296,16 +349,127 @@ class Session:
                     EC.element_to_be_clickable((By.CSS_SELECTOR, match_selector))
                 )
 
-                details = MatchService.extract_profile_details(match_element, self.browser)
-                logger.info(f"Profile details: {details}")
-                time.sleep(random.uniform(1, 2))
+                # Create Match object from element
+                match = Match.from_element(match_element, self.browser)
+
+                if not match.profile.name:  # Basic validation
+                    logger.warning(
+                        "Could not extract match data properly for "
+                        f"{match_data['name']}, skipping...")
+                    continue
+
+                logger.info(
+                    "Processing match: "
+                    f"{match.profile.name, match.profile.age}"
+                )
+                self._random_sleep()
+
+                # Get opener message
+                opener = self.messenger_service.generate_opener(
+                    profile=match.profile
+                )
+
+                # Send opener message
+                if opener:
+                    match.send_opener(opener)
+                    logger.info(f"Sent opener to {match.profile.name}")
+
+                self._random_sleep()
 
             except Exception as e:
                 logger.error(f"Error processing match {match_data['id']}: {e}")
                 continue
 
-    def get_matches_data(self):
-        """Get list of matches with their IDs and names"""
+    def handle_unread_messages(self):
+        self._random_sleep()
+        self._handle_potential_popups()
+        logger.info("Handling unread messages...")
+        self.go_to_messages()
+        self._random_sleep()
+
+        # Get list of unread message data
+        unread_messages = self._get_unread_messages_data()
+
+        logger.info(f"Found {len(unread_messages)} unread messages to process")
+
+        for index, message_data in enumerate(unread_messages):
+            try:
+                logger.info(f"Processing message {index + 1} of {len(unread_messages)}")
+
+                # Find the match element by its ID
+                match_selector = f"a[href*='{message_data['id']}']"
+                match_element = WebDriverWait(self.browser, 10).until(
+                    EC.element_to_be_clickable((By.CSS_SELECTOR, match_selector))
+                )
+
+                # Create Match object from element
+                match = Match.from_element(match_element, self.browser, messages=True)
+
+                if not match.profile.name:  # Basic validation
+                    logger.warning(f"Could not extract match data properly for {message_data['name']}, skipping...")
+                    continue
+
+                logger.info(f"Processing match: {match.profile}")
+                self._random_sleep()
+
+                # Get reply message
+                reply = self.messenger_service.generate_reply(
+                    profile=match.profile,
+                    last_messages=match.profile.last_messages,
+                )
+
+                # Send reply message
+                if reply:
+                    match.send_reply(reply)
+                    logger.info(f"Sent opener to {match.profile.name}")
+
+                self._random_sleep()
+
+            except Exception as e:
+                logger.error(f"Error processing message {message_data['id']}: {e}")
+                continue
+
+    def _get_unread_messages_data(self):
+        """Get list of unread message data"""
+        try:
+            message_elements = WebDriverWait(self.browser, 10).until(
+                EC.presence_of_all_elements_located((By.CSS_SELECTOR, "a.messageListItem"))
+            )
+
+            messages_data = []
+            for message in message_elements:
+                try:
+                    # Get the message content div first
+                    message_div = message.find_element(By.CSS_SELECTOR, "div.messageListItem__message")
+
+                    # Check for any SVG in message div
+                    has_svg = message_div.find_elements(By.TAG_NAME, "svg")
+                    if has_svg:
+                        # We sent the last message, skip this chat
+                        continue
+
+                    # Get all data from message element
+                    href = message.get_attribute('href')
+                    message_id = href.split('/')[-1]
+                    name = message.find_element(By.CSS_SELECTOR, "h3.messageListItem__name").text
+                    message_content = message_div.text
+
+                    messages_data.append({
+                        'id': message_id,
+                        'name': name,
+                        'message': message_content,
+                    })
+                except Exception as e:
+                    logger.error(f"Error extracting message data: {e}")
+                    continue
+
+            return messages_data
+        except Exception as e:
+            logger.error(f"Error getting unread message elements: {e}")
+            return []
+
+    def _get_matches_data(self):
+        """Get list of basic match data (IDs and names)"""
         try:
             match_elements = WebDriverWait(self.browser, 10).until(
                 EC.presence_of_all_elements_located((By.CSS_SELECTOR, "a.matchListItem"))
@@ -330,56 +494,18 @@ class Session:
             logger.error(f"Error getting match elements: {e}")
             return []
 
-    def _profile_visible(self):
-        """
-        Check if the current Tinder profile is visible.
-        :return: True if the active profile card is visible and contains at least one image, False otherwise.
-        """
-        try:
-            # XPath to locate the currently active profile card
-            active_card_xpath = "//div[contains(@class, 'keen-slider__slide') and @aria-hidden='false']"
-            WebDriverWait(self.browser, self.WEBDRIVER_WAIT_TIME).until(
-                EC.presence_of_element_located((By.XPATH, active_card_xpath))
-            )
-
-            # Locate image elements within the active profile card
-            image_elements_xpath = f"{active_card_xpath}//div[contains(@style, 'background-image')]"
-            image_elements = self.browser.find_elements(By.XPATH, image_elements_xpath)
-
-            # Check if at least one image is found
-            for element in image_elements:
-                style = element.get_attribute('style')
-                if 'url(' in style:
-                    return True  # Profile is visible if at least one image URL is found
-
-        except (StaleElementReferenceException, TimeoutException) as e:
-            logger.warning(f"Handled exception while checking profile visibility: {e}")
-
-        except Exception as e:
-            logger.error(f"Unhandled exception in _profile_visible: {e}")
-
-        return False  # Return False if no images are found or an exception occurs
-
-    # Utilities
     def _handle_potential_popups(self):
-        delay = 0.25
-
         # last possible id based div
-        base_element = self.browser.find_element(By.XPATH, Xpaths.MODAL_MANAGER.value)
+        base_element = self.browser.find_element(By.XPATH, '/html/body/div[2]')
 
         # 'see who liked you' popup
         try:
-            xpath = './/main/div/div/div[3]/button[2]'
-            WebDriverWait(base_element, delay).until(
-                EC.presence_of_element_located((By.XPATH, xpath)))
-
+            xpath = './/button/span[contains(text(), "Maybe Later")]'
             deny_btn = base_element.find_element(By.XPATH, xpath)
             deny_btn.click()
-            return "POPUP: Denied see who liked you"
-
+            logger.info("POPUP: Dismissed 'Maybe Later'")
+            return
         except NoSuchElementException:
-            pass
-        except TimeoutException:
             pass
 
         # 'upgrade like' popup
@@ -428,3 +554,13 @@ class Session:
             pass
         except StaleElementReferenceException:
             self.browser.refresh()
+
+    def _random_sleep(
+        self,
+        min_sleep: float = MIN_SLEEP,
+        max_sleep: float = MAX_SLEEP
+    ) -> float:
+        """Sleep for a random duration between MIN_SLEEP and MAX_SLEEP and return the sleep time"""
+        sleep_time = random.uniform(min_sleep, max_sleep)
+        time.sleep(sleep_time)
+        return sleep_time

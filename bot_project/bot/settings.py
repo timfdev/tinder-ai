@@ -2,6 +2,7 @@ from pydantic import Field
 from pydantic_settings import BaseSettings
 from bot.constants.models import Sexuality
 from typing import Optional
+from bot.constants.models import LoginMethods
 
 
 class Settings(BaseSettings):
@@ -28,6 +29,14 @@ class Settings(BaseSettings):
 
     # Bot Behavior
     swipe_limit: int = Field(100, env="SWIPE_LIMIT")
+
+    def get_login_method(self) -> LoginMethods:
+        """Determine login method based on available credentials"""
+        if self.facebook_email and self.facebook_password:
+            return LoginMethods.FACEBOOK
+        elif self.google_email and self.google_password:
+            return LoginMethods.GOOGLE
+        raise ValueError("No valid login credentials found in settings")
 
     class Config:
         env_file = ".env"
