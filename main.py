@@ -14,7 +14,7 @@ def parse_args():
     parser = argparse.ArgumentParser(
         description=(
             "╔═══════════════════════════════╗\n"
-            "║          AgentTinder          ║\n"
+            "║          AgenticTinder        ║\n"
             "║                               ║\n"
             "║ GitHub:                       ║\n"
             "║    https://github.com/timfdev ║\n"
@@ -72,23 +72,20 @@ def parse_args():
 def main():
     """Main entry point"""
 
-    # Parse command line arguments
     args = parse_args()
 
-    # Configure logger
     configure_logger(level=logging.DEBUG if args.debug else logging.INFO)
 
-    # Load settings
     settings = Settings()
+    messenger_service = MessengerService(
+        "http://localhost:8000"
+    )
 
-    # Create session instance
     with Session(
         settings=settings,
         persist_user_data=True,
         mock=True,
-        messenger_service=MessengerService(
-            "http://localhost:8000"
-        )
+        messenger_service=messenger_service
     ) as session:
         try:
             # Login
@@ -110,11 +107,14 @@ def main():
                 session.start_swiping()
 
             elif args.all:
-                logger.info("Running all automation tasks...")
+                # Create your own logic here
+                logger.info("Running all tasks...")
                 session.handle_matches()
                 session.handle_unread_messages()
                 time.sleep(2)
                 session.start_swiping()
+                time.sleep(2)
+                session.handle_matches()
 
         except Exception as e:
             logger.error(f"Error during execution: {e}")

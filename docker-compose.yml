@@ -1,0 +1,8 @@
+services:
+  pricing-api:
+    build:
+      context: .
+      dockerfile:
+        messenger/Dockerfile
+    ports:
+      - "8080:8080"
