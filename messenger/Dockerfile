@@ -11,9 +11,6 @@ COPY ./shared /code/shared
 # Set the Python path for shared imports
 ENV PYTHONPATH=/code
 
-# Disable crewai telementry
-ENV OTEL_SDK_DISABLED=true
-
 # Expose the application port
 EXPOSE 8080
 

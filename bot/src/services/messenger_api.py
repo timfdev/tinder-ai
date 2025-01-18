@@ -78,7 +78,7 @@ class MessengerService:
         # return MessageResponse(message="Hello, I am a bot")
         """Generate an opening message based on profile information"""
         request = OpeningMessageRequest(profile=profile)
-        return self._make_request("/api/generate/opener", request)
+        return self._make_request("/v1/generate/opener", request)
 
     def generate_reply(
         self, profile: MatchProfile,
@@ -90,13 +90,13 @@ class MessengerService:
             profile=profile,
             last_messages=last_messages
         )
-        return self._make_request("/api/generate/reply", request)
+        return self._make_request("/v1/generate/reply", request)
 
 
 # Usage example:
 if __name__ == "__main__":
     # Example usage
-    messenger = MessengerService("http://localhost:8000")
+    messenger = MessengerService("http://localhost:8080")
     profile = MatchProfile(
         match_id="123",
         name="Alice",

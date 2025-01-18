@@ -1,6 +1,7 @@
 from fastapi import FastAPI, Depends
 from contextlib import asynccontextmanager
-from messenger.app.src.agent import DatingAgent
+from messenger.app.src.agents import DatingAgent
+from messenger.app.src.profiles import personal_profile
 from typing import Annotated
 import logging
 from fastapi.requests import Request
@@ -15,15 +16,13 @@ async def agent_lifespan(app: FastAPI):
     Manage the lifespan of the DatingAgent within the FastAPI app.
     """
     logger.info("Creating DatingAgent on startup...")
-    app.state.agent = DatingAgent()
+    app.state.agent = DatingAgent(
+        personal_profile=personal_profile
+    )
 
-    try:
+    async with app.state.agent:
         yield
-    finally:
-        logger.info("DatingAgent shutting down...")
-        # Clean up any resources if needed
-        if hasattr(app.state.agent, 'memory'):
-            app.state.agent.memory.clear()
+    logger.info("DatingAgent shutting down...")
 
 
 def get_dating_agent(request: Request) -> DatingAgent:

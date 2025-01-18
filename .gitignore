@@ -1,5 +1,6 @@
 user_data/
 bot/utils/extension/
+messenger/app/db/data/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
