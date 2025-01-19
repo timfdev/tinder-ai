@@ -10,6 +10,7 @@ from shared.models import (
     ReplyRequest,
     Message
 )
+from shared.exceptions import MatchReadyException
 
 
 class BaseMessengerService(ABC):
@@ -65,12 +66,17 @@ class MessengerService:
     ) -> MessageResponse:
         """Make HTTP request to API endpoint"""
         url = urljoin(self.base_url, endpoint)
-        response = requests.post(
-            url, json=data.model_dump(),
-            timeout=self.timeout
-        )
-        response.raise_for_status()
-        return MessageResponse.model_validate(response.json())
+        try:
+            response = requests.post(
+                url, json=data.model_dump(),
+                timeout=self.timeout
+            )
+            response.raise_for_status()
+            return MessageResponse.model_validate(response.json())
+        except requests.exceptions.HTTPError as e:
+            if e.response.status_code == 409:
+                raise MatchReadyException(e.response.json()['detail'])
+            raise
 
     def generate_opener(
             self, profile: MatchProfile,

@@ -5,6 +5,10 @@ from typing import List
 from messenger.app.db.database import reset_db
 from messenger.app.src.profiles import personal_profile
 from shared.exceptions import MatchReadyException
+import logging
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 
 class TestProfile:
@@ -96,30 +100,32 @@ lisa_test = TestProfile(
 
 
 async def test_conversation(test_match: TestProfile):
-    print(f"\nTesting conversation with {test_match.profile.name}")
-    print("=" * 50)
+    logger.info(f"\nTesting conversation with {test_match.profile.name}")
+    logger.info("=" * 50)
 
     agent = DatingAgent(personal_profile=personal_profile)
     try:
         async with agent:
             # Test opening message
             response = await agent.handle_message(
-                match_id="test_match",
+                match_id=test_match.profile.match_id,
                 profile=test_match.profile
             )
-            print(f"Opening message: {response}\n")
+            logger.info(f"Opening message: {response}\n")
 
             # Test responses to their messages
             for msg in test_match.messages:
-                print(f"{test_match.profile.name}: {msg}")
+                logger.info(f"{test_match.profile.name}: {msg}")
                 response = await agent.handle_message(
                     match_id=test_match.profile.match_id,
                     profile=test_match.profile,
-                    message=Message(message=msg, is_received=True)
+                    messages=[
+                        Message(message=msg, is_received=True)
+                    ]
                 )
-                print(f"Agent: {response}\n")
+                logger.info(f"Agent: {response}\n")
     except MatchReadyException:
-        print("Match is ready to meet!")
+        logger.info("Match is ready to meet!")
 
 
 async def run_tests():

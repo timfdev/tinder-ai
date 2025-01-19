@@ -137,7 +137,7 @@ class DatingAgent:
         self,
         match_id: str,
         profile: MatchProfile,
-        message: Optional[Message] = None
+        messages: Optional[Message] = None
     ) -> str:
         """
         Handle incoming or initial messages in a conversation.
@@ -165,7 +165,7 @@ class DatingAgent:
                 return_intermediate_steps=True
             )
 
-            self._update_conversation_state(state, message)
+            self._update_conversation_state(state, messages)
 
             if len(state.messages) > 1:
                 readiness_result = await DatingAgent.check_meeting_readiness(
@@ -179,7 +179,8 @@ class DatingAgent:
                         state
                     )
 
-            input_text = self._format_input_text(profile, state, message)
+            input_text = self._format_input_text(profile, state)
+            logger.info(f"INPUT: {input_text}\n\n")
             response = await self.agent_executor.ainvoke({
                 "input": input_text,
             })
@@ -214,39 +215,41 @@ class DatingAgent:
     def _update_conversation_state(
         self,
         state: ConversationState,
-        message: Optional[Message]
+        messages: Optional[List[Message]]
     ) -> None:
         """Update conversation state with new message."""
-        if message:
-            state.messages.append(Message(
-                message=message.message,
-                is_received=True
-            ))
-            state.memory.chat_memory.add_user_message(message.message)
-        else:
-            state.messages.append(Message(
-                message="CONVERSATION_START",
-                is_received=False
-            ))
-            state.memory.chat_memory.add_ai_message("CONVERSATION_START")
+        if messages:
+            for message in messages:
+                state.messages.append(message)
+                state.memory.chat_memory.add_user_message(message.message)
 
     def _format_input_text(
         self,
         profile: MatchProfile,
-        state: ConversationState,
-        message: Optional[Message]
+        state: ConversationState
     ) -> str:
         """Format input text for the agent."""
-        profile_str = str(profile)
-        history_str = "\n".join(str(m) for m in state.messages) if state.messages else "No previous messages."
-        task_str = get_task_prompt(message is None)
+        profile_str = profile.in_llm_format()
+        history_str = "\n".join(
+            str(m) for m in state.messages
+        )
+        is_first_message = not state.messages
+        task_str = get_task_prompt(is_first_message)
 
         return "\n".join([
             "Profile:",
             textwrap.indent(profile_str, "  "),
             "",
-            "Chat History:",
+            "Previous Messages:",
             textwrap.indent(history_str, "  "),
+            "",
+            "Last Message to Respond to:",
+            textwrap.indent(
+                "[None - Generate Opening Message]"
+                if is_first_message
+                else str(state.messages[-1].message),
+                "  "
+            ),
             "",
             "Task:",
             textwrap.indent(task_str, "  ")

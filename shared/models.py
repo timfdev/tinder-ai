@@ -29,7 +29,7 @@ class MatchProfile(BaseModel):
     lifestyle: Dict[str, str] = {}
     last_messages: Optional[List[Message]] = None
 
-    def __str__(self):
+    def in_llm_format(self):
         interests = ", ".join(self.interests) if self.interests else "N/A"
         essentials = ", ".join(self.essentials) if self.essentials else "N/A"
         lines = [
@@ -47,12 +47,6 @@ class MatchProfile(BaseModel):
                     f"{k} = {v}" for k, v in self.lifestyle.items()
                 ]) if self.lifestyle else "N/A"),
         ]
-        if self.last_messages:
-            lines.append("Last Messages:")
-            for msg in self.last_messages:
-                lines.append(f"  {msg}")
-        else:
-            lines.append("Last Messages: N/A")
         return "\n".join(lines)
 
 

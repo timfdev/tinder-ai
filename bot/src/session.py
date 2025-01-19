@@ -22,6 +22,7 @@ from bot.src.services.match import Match
 from bot.src.services.location import LocationService
 from logging import getLogger
 from typing import Literal, List
+from shared.exceptions import MatchReadyException
 
 
 logger = getLogger(__name__)
@@ -509,6 +510,11 @@ class Session:
 
                 self._random_sleep()
 
+            except MatchReadyException:
+                logger.info(
+                    f"Match {match_obj.profile.name} is ready to meet."
+                )
+                continue
             except Exception as e:
                 logger.error(f"Error processing item {item_id}: {e}")
                 continue

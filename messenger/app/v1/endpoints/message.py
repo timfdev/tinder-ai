@@ -7,6 +7,8 @@ from shared.models import (
 from messenger.app.dependencies import DatingAgentDep
 import logging
 from fastapi import HTTPException
+from shared.exceptions import MatchReadyException
+
 
 logger = logging.getLogger(__name__)
 
@@ -22,10 +24,12 @@ async def generate_opener(
     try:
         response = await agent.handle_message(
             match_id=request.profile.match_id,
-            profile=request.profile.model_dump(),
-            message=None  # None indicates we want an opener
+            profile=request.profile,
+            messages=None  # None indicates we want an opener
         )
         return MessageResponse(message=response)
+    except MatchReadyException as e:
+        raise HTTPException(status_code=409, detail=str(e))
     except Exception as e:
         logger.error(f"Error generating opener: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
@@ -46,12 +50,14 @@ async def generate_reply(
 
         response = await agent.handle_message(
             match_id=request.profile.match_id,
-            profile=request.profile.model_dump(),
-            message=(
-                request.profile.last_messages[-1]
+            profile=request.profile,
+            messages=(
+                request.profile.last_messages
             )
         )
         return MessageResponse(message=response)
+    except MatchReadyException as e:
+        raise HTTPException(status_code=409, detail=str(e))
     except Exception as e:
         logger.error(f"Error generating reply: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
