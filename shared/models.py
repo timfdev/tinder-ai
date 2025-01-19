@@ -66,4 +66,3 @@ class MessageResponse(BaseModel):
 
 class ReplyRequest(BaseModel):
     profile: MatchProfile
-    last_messages: Optional[List[Message]] = None

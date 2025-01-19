@@ -34,6 +34,12 @@ def get_db():
         db.close()
 
 
+def reset_db():
+    """Clear all data from the database."""
+    Base.metadata.drop_all(bind=engine)
+    Base.metadata.create_all(bind=engine)
+
+
 if __name__ == "__main__":
     print("Initializing the database...")
     init_db()

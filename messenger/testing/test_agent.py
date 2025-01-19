@@ -1,86 +1,132 @@
-import logging
-import asyncio
 from messenger.app.src.agents import DatingAgent
 from shared.models import MatchProfile, Message
+import asyncio
+from typing import List
+from messenger.app.db.database import reset_db
 from messenger.app.src.profiles import personal_profile
 from shared.exceptions import MatchReadyException
 
-# Set up logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+
+class TestProfile:
+    def __init__(
+        self,
+        profile: MatchProfile,
+        messages: List[str]
+    ):
+        self.profile = profile
+        self.messages = messages
 
 
-async def test_dating_agent():
-    """
-    Extended test to demonstrate multiple message exchanges
-    with the DatingAgent.
-    """
-
-    # Random Tinder profile
-    profile = MatchProfile(
-        match_id="12345",
+# Test matches with their conversation styles
+annemijn_test = TestProfile(
+    profile=MatchProfile(
+        match_id="test_match1",
         name="Annemijn",
+        age=26,
+        bio="Better in person 💃",
+        interests=["Spa", "Sushi", "Brunch", "Music"],
+        looking_for="Long-term partner",
+        lifestyle={
+            "Pets": "Cat",
+            "Drinking": "On Special Occasions",
+            "Smoking": "Non-Smoker",
+            "Workout": "Sometimes",
+            "Diet": "Omnivore",
+            "Social-media": "Passive scroller"
+        }
+    ),
+    messages=[
+        "Hi 😊",
+        "Haha, where r u from?",
+        "Oh I was actually born in the US but grew up in KL. How about you?",
+        "Oh, ur here for a visit? Want me to show you around KL? :p",
+    ]
+)
+
+sarah_test = TestProfile(
+    profile=MatchProfile(
+        match_id="test_match2",
+        name="Sarah",
         age=29,
-        bio="Looking for someone to explore the city with 🍷 \nBig fan of cozy wine bars and Sunday brunches. My dog Charlie approves all my dates 🐕",
-        interests=["wine tasting", "brunch spots", "city walks", "live music", "trying new restaurants"],
-        looking_for="Something real, but let's see how it goes 😊",
-        location="Kuala Lumpur",
-        distance="10 km",
-        essentials=["Dog lover", "Non-smoker", "Drinks socially"],
-        lifestyle={"exercise": "Gym & walks with Charlie", "diet": "Foodie"}
-    )
+        bio="Wine > Whine 🍷",
+        interests=["Yoga", "Wine", "Travel", "Food"],
+        looking_for="Something casual",
+        lifestyle={
+            "Pets": "Dog person",
+            "Drinking": "Social drinker",
+            "Smoking": "Non-Smoker",
+            "Workout": "Regular",
+            "Diet": "Flexitarian",
+            "Social-media": "Instagram lover"
+        }
+    ),
+    messages=[
+        "Heya 💁‍♀️",
+        "omg same! which area r u in?",
+        "no way, im in bangsar too!",
+        "we should grab a drink there sometime 😉",
+    ]
+)
 
+
+lisa_test = TestProfile(
+    profile=MatchProfile(
+        match_id="test_match3",
+        name="Lisa",
+        age=23,
+        bio="Here for a good time not a long time 😈",
+        interests=["Clubbing", "Cocktails", "Beach", "Dancing"],
+        looking_for="Let's see what happens",
+        lifestyle={
+            "Pets": "None",
+            "Drinking": "Yes please!",
+            "Smoking": "Social smoker",
+            "Workout": "Gym bunny",
+            "Diet": "Everything",
+            "Social-media": "Influencer"
+        }
+    ),
+    messages=[
+        "hey u 😊",
+        "hahah love ur bio! u party?",
+        "omgg we should hit up zouk sometime! have u been?",
+        "this weekend mayb? 💃",
+    ]
+)
+
+
+async def test_conversation(test_match: TestProfile):
+    print(f"\nTesting conversation with {test_match.profile.name}")
+    print("=" * 50)
+
+    agent = DatingAgent(personal_profile=personal_profile)
     try:
-        # Initialize agent
-        async with DatingAgent(
-            personal_profile=personal_profile, verbose=True
-        ) as agent:
-
-            # Generate opener
-            logger.info("Generating opener...")
-            await agent.handle_message(
-                match_id=profile.match_id,
-                profile=profile
+        async with agent:
+            # Test opening message
+            response = await agent.handle_message(
+                match_id="test_match",
+                profile=test_match.profile
             )
+            print(f"Opening message: {response}\n")
 
-            messages = [
-                "Hey Tim! Thanks for the like 😊",
-
-                "Thanks! I love discovering new wine spots - any favorites around KL? I've just moved here actually 🍷",
-
-                "Same here with Charlie! 🐕 I usually hang around KLCC area for our walks, but still exploring. Where do you usually go?",
-
-                "omg have you tried Dr.Inc in Bangsar? Such a cute wine bar! They're super dog friendly too, Charlie loves it there 🐾🍷",
-
-                "Perfect! Would love to check it out - Charlie and I are free Saturday evening if you'd like to join? 😊🐕",
-            ]
-
-            # Send messages
-            for i, message_text in enumerate(messages, 1):
-                logger.info(f"\nSending user message {i}: {message_text}")
-                user_message = Message(
-                    message=message_text,
-                    is_received=True
+            # Test responses to their messages
+            for msg in test_match.messages:
+                print(f"{test_match.profile.name}: {msg}")
+                response = await agent.handle_message(
+                    match_id=test_match.profile.match_id,
+                    profile=test_match.profile,
+                    message=Message(message=msg, is_received=True)
                 )
-                try:
-                    await agent.handle_message(
-                        match_id=profile.match_id,
-                        profile=profile,
-                        message=user_message
-                    )
-                except MatchReadyException:
-                    break
+                print(f"Agent: {response}\n")
+    except MatchReadyException:
+        print("Match is ready to meet!")
 
-            logger.info("\nFinal Conversation State:")
-            state = agent.conversations[profile.match_id]
-            logger.info(f"Number of Messages: {len(state.messages)}")
-            logger.info(f"Memory Messages: {len(state.memory.chat_memory.messages)}")
-            logger.info(f"Last Interaction: {state.last_interaction}")
 
-    except Exception as e:
-        logger.error(f"{str(e)}")
-        raise
-
+async def run_tests():
+    # Test different matches
+    for test_match in [annemijn_test, sarah_test, lisa_test]:
+        await test_conversation(test_match)
 
 if __name__ == "__main__":
-    asyncio.run(test_dating_agent())
+    reset_db()
+    asyncio.run(run_tests())

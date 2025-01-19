@@ -14,7 +14,12 @@ from messenger.app.src.tools import (
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_openai import ChatOpenAI
 from messenger.app.schemas.models import ConversationState
-from .prompts import get_dating_agent_prompt, get_readiness_prompt
+from .prompts import (
+    get_dating_agent_prompt,
+    get_readiness_prompt,
+    get_refinement_prompt,
+    get_task_prompt
+)
 from shared.models import MatchProfile, Message
 from shared.exceptions import MatchReadyException
 
@@ -41,6 +46,8 @@ class DatingAgent:
         """
         self.personal_profile = personal_profile
         self.llm = ChatOpenAI(temperature=0.7)
+        self.refinement_llm = ChatOpenAI(temperature=0.7)
+
         self.conversations: Dict[str, ConversationState] = {}
         self.verbose = verbose
         self._initialize_agent()
@@ -69,7 +76,7 @@ class DatingAgent:
                     chat = Chat(match_id=match_id)
 
                 # Update chat from state
-                chat.profile = state.profile.dict()
+                chat.profile = state.profile.model_dump()
                 chat.ready_to_meet = state.ready_to_meet
                 chat.last_interaction = state.last_interaction
                 chat.readiness_timestamp = state.readiness_timestamp
@@ -113,6 +120,18 @@ class DatingAgent:
             lookup_places,
             get_place_details,
         ]
+
+    async def _refine_response(self, response: str) -> Dict:
+        """Refine the response to make it more natural and engaging."""
+        try:
+            refined = await self.refinement_llm.ainvoke([
+                SystemMessage(content=get_refinement_prompt(self.personal_profile)),
+                HumanMessage(content=f"Original message:\n{response}")
+            ])
+            return {'output': refined.content}
+        except Exception as e:
+            logger.warning(f"Refinement failed: {str(e)}")
+            return response
 
     async def handle_message(
         self,
@@ -164,8 +183,10 @@ class DatingAgent:
             response = await self.agent_executor.ainvoke({
                 "input": input_text,
             })
-            self._update_state_with_response(state, response)
-            return response["output"]
+            refined_response = await self._refine_response(response["output"])
+            logger.info(f"REFINED Response: {refined_response['output']}")
+            self._update_state_with_response(state, refined_response)
+            return refined_response["output"]
 
         except MatchReadyException as e:
             logger.info(str(e))
@@ -218,12 +239,7 @@ class DatingAgent:
         """Format input text for the agent."""
         profile_str = str(profile)
         history_str = "\n".join(str(m) for m in state.messages) if state.messages else "No previous messages."
-        task_str = (
-            "Please provide a natural and engaging response to the last user message. "
-            "Avoid starting with a greeting or repeating the user's name unless it adds value to the conversation."
-            if message else
-            "Generate an opening message."
-        )
+        task_str = get_task_prompt(message is None)
 
         return "\n".join([
             "Profile:",

@@ -5,9 +5,11 @@ services:
       dockerfile: messenger/Dockerfile
     ports:
       - "8080:8080"
-
     env_file:
       - .env
-
     volumes:
-      - ./messenger/app/db/data:/code/messenger/app/db/data
+      - messenger-db-data:/code/messenger/app/db/data
+
+volumes:
+  messenger-db-data:
+    driver: local

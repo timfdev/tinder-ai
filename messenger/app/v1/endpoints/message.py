@@ -30,6 +30,7 @@ async def generate_opener(
         logger.error(f"Error generating opener: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
+
 @router.post("/generate/reply")
 async def generate_reply(
     request: ReplyRequest,
@@ -37,13 +38,20 @@ async def generate_reply(
 ) -> MessageResponse:
     """Generate reply based on profile and conversation history"""
     try:
+        if not request.profile.last_messages:
+            raise HTTPException(
+                status_code=400,
+                detail="Last messages are required for generating a reply."
+            )
+
         response = await agent.handle_message(
             match_id=request.profile.match_id,
             profile=request.profile.model_dump(),
-            message=request.last_messages[-1] if request.last_messages else None
+            message=(
+                request.profile.last_messages[-1]
+            )
         )
         return MessageResponse(message=response)
     except Exception as e:
         logger.error(f"Error generating reply: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
-

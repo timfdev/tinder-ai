@@ -81,8 +81,8 @@ def lookup_places(venue_type: PlaceType, radius: int = 10000) -> Optional[List[D
         return [place.get('name') for place in sorted_places]
 
     except ValueError as e:
-        logger.error(f"Invalid venue_type: {str(e)}")
-        raise ValueError("Invalid venue_type provided.")
+        logger.error(f"Error in lookup_places: {str(e)}")
+        return None
 
     except Exception as e:
         logger.error(f"Error looking up places: {str(e)}")
