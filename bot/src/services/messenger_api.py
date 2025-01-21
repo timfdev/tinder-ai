@@ -87,7 +87,8 @@ class MessengerService:
         return self._make_request("/v1/generate/opener", request)
 
     def generate_reply(
-        self, profile: MatchProfile,
+        self,
+        profile: MatchProfile,
         last_messages: Optional[List[Message]] = None
     ) -> MessageResponse:
         # return MessageResponse(message="Hello, I am a bot REPLY")
@@ -99,36 +100,16 @@ class MessengerService:
         return self._make_request("/v1/generate/reply", request)
 
 
-# Usage example:
-if __name__ == "__main__":
-    # Example usage
-    messenger = MessengerService("http://localhost:8080")
-    profile = MatchProfile(
-        match_id="123",
-        name="Alice",
-        age=25,
-        bio="Love hiking and photography",
-        interests=["travel", "photography"]
-    )
+class MockMessengerService(BaseMessengerService):
+    """A fallback implementation of the Messenger Service."""
+    def generate_opener(self, profile: MatchProfile) -> MessageResponse:
+        """Generate a default opening message."""
+        return MessageResponse(message=f"Hi {profile.name} 😊!")
 
-    # Generate opener
-    opener_response = messenger.generate_opener(
-        profile=profile
-    )
-    print(f"Opening message: {opener_response.message}")
-
-    # Generate reply
-    reply_response = messenger.generate_reply(
-        profile=profile,
-        last_messages=[
-            Message(
-                message="Hi there!",
-                is_received=True
-            ),
-            Message(
-                message="Hey, I love your travel photos!",
-                is_received=False
-            )
-        ]
-    )
-    print(f"Reply: {reply_response.message}")
+    def generate_reply(
+        self,
+        profile: MatchProfile,
+        last_messages: Optional[List[Message]] = None
+    ) -> MessageResponse:
+        """Generate an empty reply."""
+        raise NotImplementedError("Reply is not implemented")

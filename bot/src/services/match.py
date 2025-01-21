@@ -138,22 +138,41 @@ class Match:
         """
         if mock:
             logger.info(
-                f"[MOCK] Would send {context} to {self.profile.name}: "
-                f"{message}"
+                f"[MOCK] Would send {context} to {self.profile.name}: {message}"
             )
             return True
 
         try:
+            # Wait for the input field to be present
             message_input = WebDriverWait(self.browser, 10).until(
                 EC.presence_of_element_located(
                     (By.XPATH, "//textarea[@placeholder='Type a message']")
                 )
             )
-            message_input.send_keys(message)
+
+            # Use JavaScript to inject the full message (including emojis)
+            JS_ADD_TEXT_TO_INPUT = """
+                var textarea = arguments[0], txt = arguments[1];
+                textarea.value = txt;  // Set the value
+                textarea.dispatchEvent(new Event('input', { bubbles: true }));  // Trigger input event
+                textarea.dispatchEvent(new Event('change', { bubbles: true }));  // Trigger change event
+            """
+            self.browser.execute_script(JS_ADD_TEXT_TO_INPUT, message_input, message)
+
+            # Click on the input field to activate it
+            message_input.click()
+
+            # Simulate typing a single letter to trigger events
+            message_input.send_keys("x")  # Type a placeholder character
+            message_input.send_keys(Keys.BACKSPACE)  # Remove the placeholder character
+
+            # Press Enter to send the message
             message_input.send_keys(Keys.RETURN)
+
             logger.info(
-                f"{context.capitalize()} sent to {self.profile.name}: "
-                f"{message}")
+                f"{context.capitalize()} sent to {self.profile.name}: {message}"
+            )
+            time.sleep(1.5)
             return True
         except Exception as e:
             logger.error(

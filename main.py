@@ -1,5 +1,5 @@
 from bot.src.session import Session
-from bot.src.services.messenger_api import MessengerService
+from bot.src.services.messenger_api import MockMessengerService
 from bot.src.settings import Settings
 from bot.src.utils.logger import configure_logger
 import argparse
@@ -77,14 +77,12 @@ def main():
     configure_logger(level=logging.DEBUG if args.debug else logging.INFO)
 
     settings = Settings()
-    messenger_service = MessengerService(
-        "http://localhost:8080"
-    )
+    messenger_service = MockMessengerService()
 
     with Session(
         settings=settings,
         persist_user_data=True,
-        mock=True,
+        mock=args.mock,
         messenger_service=messenger_service
     ) as session:
         try:
@@ -109,7 +107,7 @@ def main():
             elif args.all:
                 # Create your own logic here
                 logger.info("Running all tasks...")
-                session.handle_matches()
+                # session.handle_matches()
                 session.handle_unread_messages()
                 time.sleep(2)
                 session.start_swiping()

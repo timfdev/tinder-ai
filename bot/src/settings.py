@@ -28,7 +28,7 @@ class Settings(BaseSettings):
     set_global: bool = Field(False, env="SET_GLOBAL")
 
     # Bot Behavior
-    swipe_limit: int = Field(100, env="SWIPE_LIMIT")
+    swipe_limit: int = Field(20, env="SWIPE_LIMIT")
 
     def get_login_method(self) -> LoginMethods:
         """Determine login method based on available credentials"""

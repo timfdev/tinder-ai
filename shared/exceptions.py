@@ -1,5 +1,4 @@
-from messenger.app.schemas.models import ConversationState
-from typing import Union
+from typing import Optional
 
 
 class MatchReadyException(Exception):
@@ -7,12 +6,19 @@ class MatchReadyException(Exception):
     Raised when trying to continue conversation with a match
     that's already ready to meet.
     """
-    def __init__(self, state_or_message: Union[ConversationState, str]):
-        if isinstance(state_or_message, ConversationState):
-            message = (
-                f"\nMatch {state_or_message.profile.name} is ready to meet "
-                f"(since {state_or_message.readiness_timestamp})"
+    def __init__(
+        self,
+        name: Optional[str] = None,
+        readiness_timestamp: Optional[str] = None,
+        message: Optional[str] = None
+    ):
+        if message:
+            final_message = message
+        elif name and readiness_timestamp:
+            final_message = (
+                f"\nMatch {name} is ready "
+                f"to meet (since {readiness_timestamp})"
             )
         else:
-            message = str(state_or_message)
-        super().__init__(message)
+            final_message = "Match is ready to meet."
+        super().__init__(final_message)

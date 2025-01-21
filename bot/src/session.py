@@ -457,7 +457,7 @@ class Session:
 
         match_obj = None
         # Iterate over match/message data
-        for index, item_id in enumerate(data_list):
+        for index, item_id in enumerate(data_list[:10]):
             try:
                 # Get the clickable element by ID
                 match_selector = f"a[href*='{item_id}']"
@@ -492,14 +492,13 @@ class Session:
                 if item_type == 'matches':
                     message_to_send = self.messenger_service.generate_opener(
                         profile=match_obj.profile
-                    )
+                    ).message
                 else:
                     message_to_send = self.messenger_service.generate_reply(
                         profile=match_obj.profile,
                         last_messages=match_obj.profile.last_messages,
-                    )
+                    ).message
 
-                # Send the message, if any
                 if message_to_send:
                     if item_type == 'matches':
                         match_obj.send_opener(message_to_send, mock=self.mock)
@@ -507,6 +506,8 @@ class Session:
                     else:
                         match_obj.send_reply(message_to_send, mock=self.mock)
                         self.session_data.sent_replies += 1
+                else:
+                    logger.info("No message to send.")
 
                 self._random_sleep()
 
@@ -516,11 +517,14 @@ class Session:
                 )
                 continue
             except Exception as e:
-                logger.error(f"Error processing item {item_id}: {e}")
+                logger.error(f"Error processing item: {e}")
                 continue
             finally:
                 if match_obj is not None:
-                    match_obj.close_profile()
+                    if item_type == 'matches':
+                        self.go_to_matches()
+                    else:
+                        match_obj.close_profile()
 
     def _get_unread_messages_data(self) -> List[str]:
         """Get list of unread message data"""
