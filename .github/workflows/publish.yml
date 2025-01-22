@@ -19,6 +19,14 @@ jobs:
         with:
           python-version: "3.10"
 
+      - name: Debugging Info
+        run: |
+          echo "Repository: https://maven.pkg.github.com/${{ github.repository }}"
+          echo "Actor: ${{ github.actor }}"
+          echo "Token: ${{ secrets.GITHUB_TOKEN }}"
+
+
+
       - name: Install Poetry
         run: pip install poetry
 
