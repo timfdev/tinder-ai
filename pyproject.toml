@@ -8,7 +8,6 @@ readme = "README.md"
 packages = [
     { include = "bot" },
     { include = "shared" }
-private = true
 ]
 
 [tool.poetry.dependencies]
