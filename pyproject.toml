@@ -1,9 +1,14 @@
 [tool.poetry]
-name = "bot"
+name = "tinder-bot-manager"
 version = "0.1.0"
-description = ""
-authors = ["timfdev"]
+description = "A bot manager for Tinder automation."
+authors = ["timfdev <timfdevgithub.com/timfdev>"]
+license = "MIT"
 readme = "README.md"
+packages = [
+    { include = "bot" },
+    { include = "shared" }
+]
 
 [tool.poetry.dependencies]
 python = ">=3.10,<3.13"
