@@ -2,7 +2,7 @@
 name = "tinder-ai"
 version = "0.1.0"
 description = "A bot manager for Tinder automation."
-authors = ["timfdev <github.com/timfdev>"]
+authors = ["timfdev <frohcode@gmail.com>"]
 license = "MIT"
 readme = "README.md"
 packages = [
