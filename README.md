@@ -193,7 +193,7 @@ After setting this up, just paste the proxy url into the .env as shown before, t
 
 If you find this project useful, consider showing your support!
 
-🌟 **Star this repo** to help it gain traction. If there's enough interest, I'll also release the **Messenger API** in the near future.
+🌟 **Star this repo**. If there's enough interest, I'll also release the **Messenger API** in the near future.
 
 ☕ **[Buy Me a Coffee](https://buymeacoffee.com/timfdev)** to help keep this project alive.
 
