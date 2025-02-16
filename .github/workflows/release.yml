@@ -28,7 +28,7 @@ jobs:
           poetry version $VERSION
 
       - name: Install dependencies
-        run: poetry install --no-dev
+        run: poetry install
 
       - name: Build and publish to PyPI
         env:
