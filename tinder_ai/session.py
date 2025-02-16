@@ -11,16 +11,16 @@ from selenium.common.exceptions import (
 )
 
 import time
-from bot.services.preferences import PreferencesService
-from bot.services.login import LoginService
-from bot.services.messenger_api import BaseMessengerService
-from bot.constants.models import LoginMethods, SessionData
-from bot.settings import Settings
-from bot.utils.utils import random_sleep
+from tinder_ai.services.preferences import PreferencesService
+from tinder_ai.services.login import LoginService
+from tinder_ai.services.messenger_api import BaseMessengerService
+from tinder_ai.constants.models import LoginMethods, SessionData
+from tinder_ai.settings import Settings
+from tinder_ai.utils.utils import random_sleep
 from pathlib import Path
 import random
-from bot.services.match import Match
-from bot.services.location import LocationService
+from tinder_ai.services.match import Match
+from tinder_ai.services.location import LocationService
 from logging import getLogger
 from typing import Literal, List
 from shared import MatchReadyException

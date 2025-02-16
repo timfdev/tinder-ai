@@ -1,0 +1,38 @@
+name: Release on PyPI
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  deploy_to_pypi:
+    name: Publish to PyPI
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ vars.CI_PYTHON_VERSION || '3.10' }}
+
+      - name: Install Poetry
+        run: pip install poetry
+
+      - name: Clean previous builds
+        run: rm -rf dist/ build/ *.egg-info
+
+      - name: Set version from Git tag
+        run: |
+          VERSION=$(git describe --tags --abbrev=0 | sed 's/^v//')
+          poetry version $VERSION
+
+      - name: Install dependencies
+        run: poetry install --no-dev
+
+      - name: Build and publish to PyPI
+        env:
+          POETRY_PYPI_TOKEN_PYPI: ${{ secrets.PYPI_PASSWORD }}
+        run: |
+          poetry build
+          poetry publish

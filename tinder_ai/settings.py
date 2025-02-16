@@ -1,8 +1,8 @@
 from pydantic import Field
 from pydantic_settings import BaseSettings
-from bot.constants.models import Sexuality
+from tinder_ai.constants.models import Sexuality
 from typing import Optional
-from bot.constants.models import LoginMethods
+from tinder_ai.constants.models import LoginMethods
 
 
 class Settings(BaseSettings):

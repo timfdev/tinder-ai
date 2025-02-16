@@ -1,7 +1,10 @@
-from bot.session import Session
-from bot.services.messenger_api import MockMessengerService, MessengerService
-from bot.settings import Settings
-from bot.utils import configure_logger, BANNER
+from tinder_ai.session import Session
+from tinder_ai.services.messenger_api import (
+    MockMessengerService,
+    MessengerService
+)
+from tinder_ai.settings import Settings
+from tinder_ai.utils import configure_logger, BANNER
 
 import argparse
 import logging

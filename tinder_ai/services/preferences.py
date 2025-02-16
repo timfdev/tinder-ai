@@ -6,8 +6,8 @@ from selenium.common.exceptions import (
     StaleElementReferenceException
 )
 from selenium.webdriver.common.action_chains import ActionChains
-from bot.constants.models import Sexuality
-from bot.settings import Settings
+from tinder_ai.constants.models import Sexuality
+from tinder_ai.settings import Settings
 import time
 import random
 from logging import getLogger

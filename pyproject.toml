@@ -1,17 +1,17 @@
 [tool.poetry]
 name = "tinder-ai"
-version = "0.1.0"
-description = "A bot manager for Tinder automation."
+version = "0.1.1"
+description = "A Tinder bot SDK using Selenium and AI"
 authors = ["timfdev <frohcode@gmail.com>"]
 license = "MIT"
 readme = "README.md"
 packages = [
-    { include = "bot" },
+    { include = "tinder_ai" },
     { include = "shared" }
 ]
 
 [tool.poetry.dependencies]
-python = ">=3.10,<3.13"
+python = ">=3.10,<4.0"
 undetected-chromedriver = "^3.5.5"
 pydantic = "^2.10.4"
 pydantic-settings = "^2.7.0"
