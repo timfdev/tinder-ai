@@ -17,8 +17,9 @@
 </p>
 <br>
 
-![Demo](static/message.gif)
-
+<p align="center">
+    <img src="static/message.gif" width="600">
+</p>
 
 ## 📌 Table of Contents
 - [Overview](#-overview)
