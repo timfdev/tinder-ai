@@ -23,7 +23,7 @@ from tinder_ai.services.match import Match
 from tinder_ai.services.location import LocationService
 from logging import getLogger
 from typing import Literal, List
-from shared import MatchReadyException
+from tinder_ai.shared import MatchReadyException
 
 
 logger = getLogger(__name__)

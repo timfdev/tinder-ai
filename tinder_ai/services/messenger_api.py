@@ -3,7 +3,7 @@ from abc import ABC, abstractmethod
 from pydantic import BaseModel
 import requests
 from urllib.parse import urljoin
-from shared import (
+from tinder_ai.shared import (
     MatchProfile,
     MessageResponse,
     OpeningMessageRequest,

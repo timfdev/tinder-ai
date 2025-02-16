@@ -5,7 +5,7 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.common.keys import Keys
 from undetected_chromedriver import Chrome
-from shared import MatchProfile, Message
+from tinder_ai.shared import MatchProfile, Message
 
 from logging import getLogger
 import time
