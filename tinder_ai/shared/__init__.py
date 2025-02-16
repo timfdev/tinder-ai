@@ -1,7 +1,7 @@
-from shared.exceptions import (
+from tinder_ai.shared.exceptions import (
     MatchReadyException
 )
-from shared.models import (
+from tinder_ai.shared.models import (
     Message,
     MatchProfile,
     OpeningMessageRequest,
