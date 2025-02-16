@@ -1,5 +1,5 @@
-from session import Session
-from settings import Settings
+from tinder_ai.session import Session
+from tinder_ai.settings import Settings
 
 
 __all__ = [
