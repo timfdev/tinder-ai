@@ -22,6 +22,7 @@
 </p>
 
 ## 📌 Table of Contents
+
 - [Overview](#-overview)
 - [Setup](#-setup)
 - [QuickStart](#-quickstart)
@@ -37,7 +38,9 @@
 ---
 
 ## 🚀 Overview
+
 Tinder-AI is a **Tinder bot SDK** using **Selenium with undetected Chromedriver**. It provides:
+
 - **Profile setup**
 - **Proxy support**
 - **Geolocation spoofing**
@@ -51,11 +54,13 @@ Use it to build your own **AI dating assistant**.
 ## ⚙️ Setup
 
 **Install the package**
+
 ```shell
 pip install tinder-ai
 ```
 
 **Create the `.env` file containing:**
+
 ```sh
 # Messenger API configuration
 MESSENGER_API=url_to_api
@@ -85,7 +90,8 @@ Edit .env and fill in the required values.
 ---
 
 ## ⚡ QuickStart
-**Note**: *You will still need a messenger api, if none is given in the `.env`. It will just use the `MockingMessengerClass`.*
+
+**Note**: _You will still need a messenger api (Example: [ai-messenger](https://github.com/timfdev/ai-messenger)), if none is given in the `.env`. It will just use the `MockingMessengerClass`._
 
 ```shell
 python -m tinder_ai --all
@@ -94,9 +100,12 @@ python -m tinder_ai --all
 ---
 
 ## 🛠 Usage
+
 #### Session
+
 **Set up a session**
 Setting `mock=True` will still call the messenger service but messages will **not** actually be sent.
+
 ```python
 from tinder_ai import Settings, Session
 from tinder_ai.services.messenger_api import MockMessengerService
@@ -114,19 +123,25 @@ with Session(
 ```
 
 #### Openers
+
 **Send a first message to all matches**
+
 ```python
 session.handle_matches()
 ```
 
 #### Replies
+
 **Auto-reply unread messages**
+
 ```python
 session.handle_unread_messages()
 ```
 
 #### Auto-Swiping
+
 **Swipe on profiles automatically**
+
 ```python
 session.start_swiping()
 ```
@@ -137,9 +152,11 @@ session.start_swiping()
 
 The Messenger Service handles **AI-generated messages** for **openers and replies**.
 
-
 ##### Option 1: Using an API
+
 Plug in your own LLM service to use for messaging.
+For an example see [ai-messenger](https://github.com/timfdev/ai-messenger).
+
 ```python
 messenger_service = MessengerService(
 	base_url="http://0.0.0.0:8080"
@@ -151,6 +168,7 @@ session = Session(
 ```
 
 ##### Option 2: Using a custom class
+
 Inherit from the base messenger class and build your own llm wrapper.
 
 ```python
@@ -171,7 +189,9 @@ class CustomMessengerService(BaseMessengerService):
             return MessageResponse(message="That sounds amazing! Tell me more. 😊")
         return MessageResponse(message="Hey, what’s up?")
 ```
+
 Then just pass it into the session object.
+
 ```python
 session = Session(
 	settings=settings,
@@ -182,6 +202,7 @@ session = Session(
 ---
 
 ## 🌐 Proxies
+
 When switching between multiple accounts and/or locations, I recommend using [Proxies](https://get.brightdata.com/ghbzp2nfn7ye).
 In the past, you could write a custom Chrome plugin, but authenticated proxies are no longer supported due to Chrome's changes to Manifest V3.
 If you are using authenticated proxies, I recommend using a proxy server such as **Squid**.
@@ -189,6 +210,7 @@ If you are using authenticated proxies, I recommend using a proxy server such as
 After setting this up, just paste the proxy url into the .env as shown before, the browser session will automatically use the proxys' location unless coordinates are given.
 
 ---
+
 ## ⭐ Support
 
 If you find this project useful, consider showing your support!
@@ -197,8 +219,8 @@ If you find this project useful, consider showing your support!
 
 ☕ **[Buy Me a Coffee](https://buymeacoffee.com/timfdev)** to help keep this project alive.
 
-
 ---
+
 ## ⚠️ Disclamer
 
 **Automation is against Tinder's TOS.**
